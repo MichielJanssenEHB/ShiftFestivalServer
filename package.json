@@ -7,7 +7,7 @@
     "start": "node server",
     "dev": "nodemon server",
     "build": "npm ci",
-    "serve": "node index.js"
+    "serve": "node server.js"
   },
   "keywords": [],
   "author": "",

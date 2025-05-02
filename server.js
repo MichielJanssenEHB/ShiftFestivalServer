@@ -6,7 +6,7 @@ const cors = require("cors");
 const nodemailer = require("nodemailer");
 
 const corsOptions = {
-	origin: ["http://localhost:5173"],
+	origin: "*",
 };
 
 app.use(express.json());
@@ -39,11 +39,21 @@ const sendEmail = async (to, name) => {
 			to: to,
 			subject: `Welkom bij Shift Festival, ${name}!`,
 			text: `Hallo ${name}, bedankt voor je inschrijving bij Shift Festival! We kijken ernaar uit om je te verwelkomen.`,
-			html: `<h1>Welkom bij Shift Festival, ${name}!</h1>
-                       <p>Hallo ${name},</p>
-                       <p>Bedankt voor je inschrijving bij <strong>Shift Festival</strong>! We kijken ernaar uit om je daar te zien.</p>
-                       <p>Met vriendelijke groet,</p>
-                       <p>Het Shift Festival Team</p>`,
+			html: `<h1>Welkom bij Shift, ${name}!</h1> 
+					<p>Hallo ${name},</p> 
+					<p>Bedankt voor je inschrijving voor <strong>Shift</strong>! 
+					We zijn enthousiast om je te verwelkomen op ons evenement.</p> 
+					
+					<h2>Waar en wanneer:</h2> 
+					<p><strong>Vrijdag 20 juni 2025</strong> van 17:00 tot 21:00 uur (doorlopend expo en workshops)</p> 
+					<p>Award-uitreiking om 20:00 uur</p> 
+					<p><strong>Locatie:</strong> Erasmushogeschool Brussel, Nijverheidskaai 170, 1070 Anderlecht</p> 
+					<p>Alle info vind je op de <a href="https://shiftfestival.be" target="_blank">website</a></p> 
+					<p>Vergeet zeker niet om je in te schrijven voor de barbecue!</p> 
+					<p>Nogmaals bedankt voor je inschrijving. Tot op <strong>Shift</strong>!</p> 
+					<p>Met vriendelijke groet,</p> 
+					<p>Het Promotieteam van Shift</p> 
+					<p>Studenten Multimedia en Creatieve Technologie, Erasmushogeschool Brussel</p>`,
 		});
 
 		console.log("✅ E-mail succesvol verzonden naar:", to);
@@ -102,6 +112,6 @@ app.post("/api/submit-register-form", (req, res) => {
 	});
 });
 
-app.listen(8080, () => {
-	console.log("Server started on port 8080");
+app.listen(3000, () => {
+	console.log("Server started on port 3000");
 });
