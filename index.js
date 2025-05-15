@@ -1,20 +1,38 @@
-const express = require("express");
+// const express = require("express");
+// const app = express();
+// const mysql = require("mysql2");
+// require("dotenv").config();
+// const cors = require("cors");
+// const nodemailer = require("nodemailer");
+// const { Client } = require('ssh2');
+// const sshClient = new Client();
+
+// const corsOptions = {
+// 	origin: "*",
+// };
+
+// app.use(express.json());
+// app.use(express.urlencoded({ extended: true }));
+
+// app.use(cors(corsOptions));
+
+const express = require('express');
+
+// Create an instance of an Express app
 const app = express();
-const mysql = require("mysql2");
-require("dotenv").config();
-const cors = require("cors");
-const nodemailer = require("nodemailer");
-const { Client } = require('ssh2');
-const sshClient = new Client();
 
-const corsOptions = {
-	origin: "*",
-};
+// Set the port
+const PORT = 3000;
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Define a simple route
+app.get('/hello', (req, res) => {
+  res.json({ message: 'Hello, world!' });
+});
 
-app.use(cors(corsOptions));
+// Start the server
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
+});
 
 // const dbConfig = {
 //     host: process.env.DB_HOST,
@@ -128,9 +146,9 @@ app.use(cors(corsOptions));
 // 	}
 // });
 
-app.get("/api", (req, res) => {
-	res.json({ fruits: ["apple", "banana", "grape"] });
-});
+// app.get("/api", (req, res) => {
+// 	res.json({ fruits: ["apple", "banana", "grape"] });
+// });
 
 // app.post("/api/submit-register-form", (req, res) => {
 // 	const { firstName, lastName, email, roles, amount, message, subscribeToUpdates } = req.body;
@@ -169,6 +187,6 @@ app.get("/api", (req, res) => {
 // 	});
 // });
 
-app.listen(3000, () => {
-	console.log("Server started on port 3000");
-});
+// app.listen(3000, () => {
+// 	console.log("Server started on port 3000");
+// });
