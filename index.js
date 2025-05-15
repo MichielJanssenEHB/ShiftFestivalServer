@@ -16,65 +16,65 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(cors(corsOptions));
 
-const dbConfig = {
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_DATABASE,
-    port: 3306
-};
+// const dbConfig = {
+//     host: process.env.DB_HOST,
+//     user: process.env.DB_USER,
+//     password: process.env.DB_PASSWORD,
+//     database: process.env.DB_DATABASE,
+//     port: 3306
+// };
 
-const tunnelConfig = {
-    host: process.env.DB_SSH_HOST,
-    port: 22,
-    username: process.env.DB_SSH_USER,
-    privateKey: require('fs').readFileSync('C:\\Users\\chiel\\Documents\\School\\Full Projects 4\\Keys\\id_rsa')
-};
+// const tunnelConfig = {
+//     host: process.env.DB_SSH_HOST,
+//     port: 22,
+//     username: process.env.DB_SSH_USER,
+//     privateKey: require('fs').readFileSync('C:\\Users\\chiel\\Documents\\School\\Full Projects 4\\Keys\\id_rsa')
+// };
 
-const forwardConfig = {
-    srcHost: '127.0.0.1',
-    srcPort: 3306,
-    dstHost: dbConfig.host,
-    dstPort: dbConfig.port
-};
+// const forwardConfig = {
+//     srcHost: '127.0.0.1',
+//     srcPort: 3306,
+//     dstHost: dbConfig.host,
+//     dstPort: dbConfig.port
+// };
 
-const SSHConnection = new Promise((resolve, reject) => {
-    sshClient.on('ready', () => {
-        console.log("SSH connection established.");
+// const SSHConnection = new Promise((resolve, reject) => {
+//     sshClient.on('ready', () => {
+//         console.log("SSH connection established.");
         
-        sshClient.forwardOut(
-            forwardConfig.srcHost,
-            forwardConfig.srcPort,
-            forwardConfig.dstHost,
-            forwardConfig.dstPort,
-            (err, stream) => {
-                if (err) {
-                    console.error("Error forwarding SSH tunnel:", err);
-                    return reject(err);
-                }
+//         sshClient.forwardOut(
+//             forwardConfig.srcHost,
+//             forwardConfig.srcPort,
+//             forwardConfig.dstHost,
+//             forwardConfig.dstPort,
+//             (err, stream) => {
+//                 if (err) {
+//                     console.error("Error forwarding SSH tunnel:", err);
+//                     return reject(err);
+//                 }
 
-                const updatedDbConfig = {
-                    ...dbConfig,
-                    stream
-                };
+//                 const updatedDbConfig = {
+//                     ...dbConfig,
+//                     stream
+//                 };
 
-                const connection = mysql.createConnection(updatedDbConfig);
-                connection.connect(error => {
-                    if (error) {
-                        console.error("Failed to connect to the database:", error);
-                        return reject(error);
-                    }
+//                 const connection = mysql.createConnection(updatedDbConfig);
+//                 connection.connect(error => {
+//                     if (error) {
+//                         console.error("Failed to connect to the database:", error);
+//                         return reject(error);
+//                     }
 
-                    console.log("Successfully connected to the database through SSH tunnel.");
-                    resolve(connection);
-                });
-            }
-        );
-    }).on('error', (err) => {
-        console.error("SSH connection error:", err);
-        reject(err);
-    }).connect(tunnelConfig);
-});
+//                     console.log("Successfully connected to the database through SSH tunnel.");
+//                     resolve(connection);
+//                 });
+//             }
+//         );
+//     }).on('error', (err) => {
+//         console.error("SSH connection error:", err);
+//         reject(err);
+//     }).connect(tunnelConfig);
+// });
 
 // const transporter = nodemailer.createTransport({
 // 	host: "smtp-auth.mailprotect.be",
