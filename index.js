@@ -17,19 +17,11 @@
 // app.use(cors(corsOptions));
 
 const express = require('express');
-
-// Create an instance of an Express app
 const app = express();
-
-// Set the port
 const PORT = 3000;
-
-// Define a simple route
 app.get('/hello', (req, res) => {
   res.json({ message: 'Hello, world!' });
 });
-
-// Start the server
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
