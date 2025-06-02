@@ -26,7 +26,7 @@ app.use((req, res, next) => {
 		"style-src 'self' 'unsafe-inline' fonts.googleapis.com use.typekit.net p.typekit.net;" +
 		"font-src fonts.gstatic.com use.typekit.net; " +
 		"script-src 'self' 'unsafe-inline'; " +
-		"connect-src 'self';"
+		"connect-src 'self' https://api.shiftfestival.be;"
 	);
 	next();
 });
