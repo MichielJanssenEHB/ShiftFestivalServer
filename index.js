@@ -46,155 +46,162 @@ app.use(cors(corsOptions));
 
 // Database volgens SSH
 const dbConfig = {
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_DATABASE,
-    port: 3306
+  host: "127.0.0.1", // after SSH tunnel
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_DATABASE,
+  port: 3306,
+  waitForConnections: true,
+  connectionLimit: 10,
 };
 
 const tunnelConfig = {
-    host: process.env.DB_SSH_HOST,
-    port: 22,
-    username: process.env.DB_SSH_USER,
-    //privateKey: fs.readFileSync(process.env.SSH_PK_PATH),
-    privateKey: process.env.SSH_PK.replace(/\\n/g, '\n')
+  host: process.env.DB_SSH_HOST,
+  port: 22,
+  username: process.env.DB_SSH_USER,
+  privateKey: process.env.SSH_PK.replace(/\\n/g, '\n'),
 };
 
 const forwardConfig = {
-    srcHost: '127.0.0.1',
-    srcPort: 3306,
-    dstHost: dbConfig.host,
-    dstPort: dbConfig.port
+  srcHost: "127.0.0.1",
+  srcPort: 3306,
+  dstHost: process.env.DB_HOST,
+  dstPort: 3306,
 };
 
-const SSHConnection = new Promise((resolve, reject) => {
-    sshClient.on('ready', () => {
-        console.log("SSH connection established.");
-        
-        sshClient.forwardOut(
-            forwardConfig.srcHost,
-            forwardConfig.srcPort,
-            forwardConfig.dstHost,
-            forwardConfig.dstPort,
-            (err, stream) => {
-                if (err) {
-                    console.error("Error forwarding SSH tunnel:", err);
-                    return reject(err);
-                }
+// Globals
+let dbPool;
 
-                const updatedDbConfig = {
-                    ...dbConfig,
-                    stream
-                };
+// SSH Tunnel & DB Setup
+const setupTunnelAndDB = async () => {
+  return new Promise((resolve, reject) => {
+    const ssh = new Client();
 
-                const connection = mysql.createConnection(updatedDbConfig);
-                connection.connect(error => {
-                    if (error) {
-                        console.error("Failed to connect to the database:", error);
-                        return reject(error);
-                    }
+    ssh.on("ready", () => {
+      console.log("🔐 SSH tunnel ready.");
 
-                    console.log("Successfully connected to the database through SSH tunnel.");
-                    resolve(connection);
-                });
-            }
-        );
-    }).on('error', (err) => {
-        console.error("SSH connection error:", err);
-        reject(err);
-    }).connect(tunnelConfig);
-});
+      ssh.forwardOut(
+        forwardConfig.srcHost,
+        forwardConfig.srcPort,
+        forwardConfig.dstHost,
+        forwardConfig.dstPort,
+        async (err, stream) => {
+          if (err) {
+            console.error("❌ SSH forward error:", err);
+            return reject(err);
+          }
 
-// Automatic mails
+          try {
+            dbPool = mysql.createPool({ ...dbConfig, stream });
+            const conn = await dbPool.getConnection();
+            await conn.ping();
+            conn.release();
+            console.log("✅ DB connection pool established.");
+            resolve();
+          } catch (dbErr) {
+            console.error("❌ DB pool error:", dbErr);
+            reject(dbErr);
+          }
+        }
+      );
+    });
+
+    ssh.on("error", (err) => {
+      console.error("❌ SSH connection error:", err);
+      reject(err);
+    });
+
+    ssh.connect(tunnelConfig);
+  });
+};
+
+// Email setup
 const transporter = nodemailer.createTransport({
-	host: "smtp-auth.mailprotect.be",
-	port: 465,
-	secure: true,
-	auth: {
-		user: process.env.SMTP_USER,
-		pass: process.env.SMTP_PASS,
-	},
-	logger: true,
+  host: "smtp-auth.mailprotect.be",
+  port: 465,
+  secure: true,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
 });
 
 const sendEmail = async (to, name) => {
-	try {
-		const info = await transporter.sendMail({
-			from: '"Shift Festival" <info@shiftfestival.be>',
-			to: to,
-			subject: `Welkom bij Shift Festival, ${name}!`,
-			text: `Hallo ${name}, bedankt voor je inschrijving bij Shift Festival! We kijken ernaar uit om je te verwelkomen.`,
-			html: `<h1>Welkom bij Shift, ${name}!</h1> 
-					<p>Hallo ${name},</p> 
-					<p>Bedankt voor je inschrijving voor <strong>Shift</strong>! 
-					We zijn enthousiast om je te verwelkomen op ons evenement.</p> 
-					
-					<h2>Waar en wanneer:</h2> 
-					<p><strong>Vrijdag 20 juni 2025</strong> van 17:00 tot 21:00 uur (doorlopend expo en workshops)</p> 
-					<p>Award-uitreiking om 20:00 uur</p> 
-					<p><strong>Locatie:</strong> Erasmushogeschool Brussel, Nijverheidskaai 170, 1070 Anderlecht</p> 
-					<p>Alle info vind je op de <a href="https://shiftfestival.be" target="_blank">website</a></p> 
-					<p>Vergeet zeker niet om je in te schrijven voor de barbecue!</p> 
-					<p>Nogmaals bedankt voor je inschrijving. Tot op <strong>Shift</strong>!</p> 
-					<p>Met vriendelijke groet,</p> 
-					<p>Het Promotieteam van Shift</p> 
-					<p>Studenten Multimedia en Creatieve Technologie, Erasmushogeschool Brussel</p>`,
-		});
-
-		console.log("✅ E-mail succesvol verzonden naar:", to);
-		console.log("📩 Bericht ID:", info.messageId);
-	} catch (error) {
-		console.error("❌ Fout bij verzenden e-mail:", error);
-	}
+  try {
+    const info = await transporter.sendMail({
+      from: '"Shift Festival" <info@shiftfestival.be>',
+      to,
+      subject: `Welkom bij Shift Festival, ${name}!`,
+      html: `<h1>Welkom bij Shift, ${name}!</h1>
+             <p>Hallo ${name},</p>
+             <p>Bedankt voor je inschrijving voor <strong>Shift</strong>...</p>`,
+    });
+    console.log("📧 Mail verzonden naar:", to);
+  } catch (error) {
+    console.error("❌ E-mailfout:", error);
+  }
 };
 
-// Test api call
+// API test
 app.get("/api", (req, res) => {
-	res.json({ fruits: ["apple", "banana", "grape"] });
+  res.json({ fruits: ["apple", "banana", "grape"] });
 });
 
-// // Form voor inschrijvingen
-app.post("/api/submit-register-form", (req, res) => {
-  SSHConnection.then(connection => {
-    const { firstName, lastName, email, roles, amount, message, subscribeToUpdates } = req.body;
+// Registration endpoint
+app.post("/api/submit-register-form", async (req, res) => {
+  try {
+    const connection = await dbPool.getConnection();
 
+    const { firstName, lastName, email, roles, amount, message, subscribeToUpdates } = req.body;
     if (!firstName || !lastName || !email || !roles || !amount) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    const checkMailQuery = `SELECT COUNT(*) AS email_count FROM event_registrations WHERE email = ?`;
-    connection.query(checkMailQuery, [email], (err, results) => {
-      if (err) {
-        console.error("Error querying database:", err);
-        return res.status(500).json({ message: "Sorry something went wrong" });
-      }
+    const [existing] = await connection.query(
+      "SELECT COUNT(*) AS email_count FROM event_registrations WHERE email = ?",
+      [email]
+    );
 
-      if (results[0].email_count !== 0) {
-        return res.status(409).json({ message: "Email is reeds gebruikt" });
-      }
+    if (existing[0].email_count > 0) {
+      return res.status(409).json({ message: "Email is reeds gebruikt" });
+    }
 
-      const role = roles[0];
-      const roleName = role.role;
-      const companyName = role.companyName;
-      const sponsor = role.sponsorship;
+    const role = roles[0];
+    const insertQuery = `
+      INSERT INTO event_registrations 
+      (first_name, last_name, email, num_attendees, message, wants_event_updates, role, company_name, wants_sponsorship)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-      const sql = "INSERT INTO event_registrations (first_name, last_name, email, num_attendees, message, wants_event_updates, role, company_name, wants_sponsorship) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-      connection.query(sql, [firstName, lastName, email, amount, message, [subscribeToUpdates ? 1 : 0], roleName, companyName, sponsor], (err, result) => {
-        if (err) {
-          console.error("Error inserting data:", err);
-          return res.status(500).json({ message: "Sorry something went wrong" });
-        }
-        res.status(200).json({ message: "Data inserted successfully" });
+    await connection.query(insertQuery, [
+      firstName,
+      lastName,
+      email,
+      amount,
+      message,
+      subscribeToUpdates ? 1 : 0,
+      role.role,
+      role.companyName,
+      role.sponsorship,
+    ]);
 
-        //sendmail function
-        sendEmail(email, firstName);
-      });
+    connection.release();
+
+    res.status(200).json({ message: "Inschrijving geslaagd!" });
+    sendEmail(email, firstName);
+  } catch (err) {
+    console.error("❌ Query error:", err);
+    res.status(500).json({ message: "Er ging iets mis bij registratie" });
+  }
+});
+
+// Start server after tunnel + DB ready
+setupTunnelAndDB()
+  .then(() => {
+    app.listen(3000, () => {
+      console.log("🚀 Server draait op http://localhost:3000");
     });
+  })
+  .catch((err) => {
+    console.error("❌ Startup failed:", err);
+    process.exit(1);
   });
-});
-
-// Starten app
-app.listen(3000, () => {
-	console.log("Server started on port 3000");
-});
