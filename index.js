@@ -471,6 +471,28 @@ app.get("/api/publieksvotes/:project_id", (req, res) => {
 	});
 });
 
+app.get("/api/counter", (req, res) => {
+	createSshTunnelAndConnection((err, connection) => {
+		if (err) {
+			console.error("SSH/DB connection failed:", err);
+			return res.status(500).json({ message: "Database connection error" });
+		}
+
+		const countUsers = `SELECT SUM(num_attendees) AS total FROM event_registrations`;
+
+		connection.query(countUsers, (err, results) => {
+			connection.end();
+
+			if (err) {
+				console.error("Error querying database:", err);
+				return res.status(500).json({ message: "Sorry something went wrong" });
+			}
+
+			res.json({ count: results[0].total || 0 });
+		});
+	});
+});
+
 // Start server
 app.listen(3000, () => {
 	console.log("🚀 Server started on port 3000");
