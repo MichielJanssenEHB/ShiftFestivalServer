@@ -293,112 +293,112 @@ app.post("/api/submit-register-form", (req, res) => {
 });
 
 // Register voter
-// app.post("/api/register-voter", (req, res) => {
-// 	createSshTunnelAndConnection((err, connection) => {
-// 		if (err) {
-// 			console.error("SSH/DB connection failed:", err);
-// 			return res.status(500).json({ message: "Database connection error" });
-// 		}
+app.post("/api/register-voter", (req, res) => {
+	createSshTunnelAndConnection((err, connection) => {
+		if (err) {
+			console.error("SSH/DB connection failed:", err);
+			return res.status(500).json({ message: "Database connection error" });
+		}
 
-// 		const { email } = req.body;
-// 		const emailRegex = /^[a-zA-Z0-9._%+-]+@ehb\.be$/;
-// 		//const emailRegex = /^[a-zA-Z0-9._%+-]+@student\.ehb\.be$/;
+		const { email } = req.body;
+		const emailRegex = /^[a-zA-Z0-9._%+-]+@ehb\.be$/;
+		//const emailRegex = /^[a-zA-Z0-9._%+-]+@student\.ehb\.be$/;
 
-// 		if (!email || !emailRegex.test(email)) {
-// 			connection.end();
-// 			return res.status(400).json({ message: "A valid @ehb.be email is required" });
-// 		}
+		if (!email || !emailRegex.test(email)) {
+			connection.end();
+			return res.status(400).json({ message: "A valid @ehb.be email is required" });
+		}
 
-// 		const checkQuery = `SELECT token FROM voters WHERE email = ?`;
+		const checkQuery = `SELECT token FROM voters WHERE email = ?`;
 
-// 		connection.query(checkQuery, [email], (err, results) => {
-// 			if (err) {
-// 				console.error("Query error:", err);
-// 				connection.end();
-// 				return res.status(500).json({ message: "Database query error" });
-// 			}
+		connection.query(checkQuery, [email], (err, results) => {
+			if (err) {
+				console.error("Query error:", err);
+				connection.end();
+				return res.status(500).json({ message: "Database query error" });
+			}
 
-// 			if (results.length > 0) {
-// 				connection.end();
-// 				sendEmailWithToken(email, results[0].token);
-// 				return res.status(200).json({
-// 					message: "Je was al geregistreerd, token opnieuw verzonden",
-// 					token: results[0].token
-// 				});
-// 			}
+			if (results.length > 0) {
+				connection.end();
+				sendEmailWithToken(email, results[0].token);
+				return res.status(200).json({
+					message: "Je was al geregistreerd, token opnieuw verzonden",
+					token: results[0].token
+				});
+			}
 
-// 			const token = crypto.randomBytes(16).toString("hex");
-// 			const insertQuery = `INSERT INTO voters (email, token) VALUES (?, ?)`;
+			const token = crypto.randomBytes(16).toString("hex");
+			const insertQuery = `INSERT INTO voters (email, token) VALUES (?, ?)`;
 
-// 			connection.query(insertQuery, [email, token], async (err) => {
-// 				connection.end();
+			connection.query(insertQuery, [email, token], async (err) => {
+				connection.end();
 
-// 				if (err) {
-// 					console.error("Insert error:", err);
-// 					return res.status(500).json({ message: "Database insert error" });
-// 				}
+				if (err) {
+					console.error("Insert error:", err);
+					return res.status(500).json({ message: "Database insert error" });
+				}
 
-// 				await sendEmailWithToken(email, token);
+				await sendEmailWithToken(email, token);
 
-// 				return res.status(201).json({
-// 					message: "Voter registered and token sent",
-// 					token
-// 				});
-// 			});
-// 		});
-// 	});
-// });
+				return res.status(201).json({
+					message: "Voter registered and token sent",
+					token
+				});
+			});
+		});
+	});
+});
 
-// // Vote
-// app.post("/api/vote", (req, res) => {
-// 	createSshTunnelAndConnection((err, connection) => {
-// 		if (err) {
-// 			console.error("SSH/DB connection failed:", err);
-// 			return res.status(500).json({ message: "Database connection error" });
-// 		}
+// Vote
+app.post("/api/vote", (req, res) => {
+	createSshTunnelAndConnection((err, connection) => {
+		if (err) {
+			console.error("SSH/DB connection failed:", err);
+			return res.status(500).json({ message: "Database connection error" });
+		}
 
-// 		const { token, award_id, project_id } = req.body;
+		const { token, award_id, project_id } = req.body;
 
-// 		if (!token || !award_id || !project_id) {
-// 			connection.end();
-// 			return res.status(400).json({ message: "token, award_id, and project_id are required" });
-// 		}
+		if (!token || !award_id || !project_id) {
+			connection.end();
+			return res.status(400).json({ message: "token, award_id, and project_id are required" });
+		}
 
-// 		const getVoterQuery = `SELECT id FROM voters WHERE token = ?`;
+		const getVoterQuery = `SELECT id FROM voters WHERE token = ?`;
 
-// 		connection.query(getVoterQuery, [token], (err, results) => {
-// 			if (err) {
-// 				console.error("Query error:", err);
-// 				connection.end();
-// 				return res.status(500).json({ message: "Database query error" });
-// 			}
+		connection.query(getVoterQuery, [token], (err, results) => {
+			if (err) {
+				console.error("Query error:", err);
+				connection.end();
+				return res.status(500).json({ message: "Database query error" });
+			}
 
-// 			if (results.length === 0) {
-// 				connection.end();
-// 				return res.status(404).json({ message: "Invalid token" });
-// 			}
+			if (results.length === 0) {
+				connection.end();
+				return res.status(404).json({ message: "Invalid token" });
+			}
 
-// 			const voter_id = results[0].id;
+			const voter_id = results[0].id;
 
-// 			const insertVoteQuery = `
-// 				INSERT INTO votes (voter_id, award_id, project_id)
-// 				VALUES (?, ?, ?)
-// 				ON DUPLICATE KEY UPDATE project_id = VALUES(project_id)
-// 			`;
+			const insertVoteQuery = `
+				INSERT INTO votes (voter_id, award_id, project_id)
+				VALUES (?, ?, ?)
+				ON DUPLICATE KEY UPDATE project_id = VALUES(project_id)
+			`;
 
-// 			connection.query(insertVoteQuery, [voter_id, award_id, project_id], (err) => {
-// 				connection.end();
+			connection.query(insertVoteQuery, [voter_id, award_id, project_id], (err) => {
+				connection.end();
 
-// 				if (err) {
-// 					console.error("Insert vote error:", err);
-// 					return res.status(500).json({ message: "Error casting vote" });
-// 				}
+				if (err) {
+					console.error("Insert vote error:", err);
+					return res.status(500).json({ message: "Error casting vote" });
+				}
 
-// 				return res.status(200).json({ message: "Vote submitted successfully" });
-// 			});
-// 		});
-// 	});
-// });
+				return res.status(200).json({ message: "Vote submitted successfully" });
+			});
+		});
+	});
+});
 
 // Publieks voting counter add
 app.post("/api/publieksvotes", (req, res) => {
