@@ -17,13 +17,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors(corsOptions));
 
-app.use((req, res, next) => {
-  res.setHeader(
-    "Content-Security-Policy",
-    "default-src 'self'; font-src 'self' https://fonts.gstatic.com; style-src 'self' https://fonts.googleapis.com;"
-  );
-  next();
-});
+// app.use((req, res, next) => {
+//   res.setHeader(
+//     "Content-Security-Policy",
+//     "default-src 'self'; font-src 'self' https://fonts.gstatic.com; style-src 'self' https://fonts.googleapis.com;"
+//   );
+//   next();
+// });
 
 // MySQL & SSH Config
 const dbConfig = {
@@ -38,8 +38,8 @@ const tunnelConfig = {
 	host: process.env.DB_SSH_HOST,
 	port: 22,
 	username: process.env.DB_SSH_USER,
-	//privateKey: process.env.SSH_PK.replace(/\\n/g, '\n'),
-	privateKey: fs.readFileSync(process.env.SSH_PK_PATH)
+	privateKey: process.env.SSH_PK.replace(/\\n/g, '\n'),
+	//privateKey: fs.readFileSync(process.env.SSH_PK_PATH)
 };
 
 const forwardConfig = {
@@ -110,20 +110,51 @@ const sendEmail = async (to, name) => {
 			to,
 			subject: `Welkom bij Shift Festival, ${name}!`,
 			text: `Hallo ${name}, bedankt voor je inschrijving bij Shift Festival! We kijken ernaar uit om je te verwelkomen.`,
-			html: `<h1>Welkom bij Shift, ${name}!</h1> 
-					<p>Hallo ${name},</p> 
-					<p>Bedankt voor je inschrijving voor <strong>Shift</strong>! 
-					We zijn enthousiast om je te verwelkomen op ons evenement.</p> 
-					<h2>Waar en wanneer:</h2> 
-					<p><strong>Vrijdag 20 juni 2025</strong> van 17:00 tot 21:00 uur (doorlopend expo en workshops)</p> 
-					<p>Award-uitreiking om 20:00 uur</p> 
-					<p><strong>Locatie:</strong> Erasmushogeschool Brussel, Nijverheidskaai 170, 1070 Anderlecht</p> 
-					<p>Alle info vind je op de <a href="https://shiftfestival.be" target="_blank">website</a></p> 
-					<p>Vergeet zeker niet om je in te schrijven voor de barbecue!</p> 
-					<p>Nogmaals bedankt voor je inschrijving. Tot op <strong>Shift</strong>!</p> 
-					<p>Met vriendelijke groet,</p> 
-					<p>Het Promotieteam van Shift</p> 
-					<p>Studenten Multimedia en Creatieve Technologie, Erasmushogeschool Brussel</p>`
+			html: `<div style="font-family: 'Arial', sans-serif; background-color: #ffffff; color: #333; padding: 40px; max-width: 600px; margin: auto; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            <img src="https://shiftfestival.be/Logo.svg" alt="Shift Logo" style="width: 120px; margin-bottom: 30px;">
+ 
+            <h1 style="color: #E62474; font-size: 28px; margin-bottom: 10px;">Welkom bij Shift, ${name}!</h1>
+           
+            <p style="font-size: 16px; line-height: 1.6;">
+              Hallo ${name},<br>
+              Bedankt voor je inschrijving voor <strong style="color: #97EB4E;">Shift</strong>!
+              We zijn enthousiast om je te verwelkomen op ons evenement.
+            </p>
+ 
+            <h2 style="color: #97EB4E; font-size: 20px; margin-top: 30px;">📍 Waar en wanneer:</h2>
+            <p style="font-size: 16px; line-height: 1.6;">
+              <strong>Vrijdag 20 juni 2025</strong> van 17:00 tot 21:00 uur <br>
+              (doorlopend expo en workshops)<br>
+              <strong>Award-uitreiking:</strong> 20:00 uur<br>
+              <strong>Locatie:</strong> Erasmushogeschool Brussel,<br>
+              Nijverheidskaai 170, 1070 Anderlecht
+            </p>
+ 
+            <p style="font-size: 16px; line-height: 1.6;">
+              Alle info vind je op de <a href="https://shiftfestival.be" target="_blank" style="color: #E62474; text-decoration: none;">website</a>.
+            </p>
+ 
+            <p style="font-size: 16px; line-height: 1.6;">
+              Vergeet zeker niet om je in te schrijven voor de barbecue!
+            </p>
+ 
+            <div style="margin: 30px 0; text-align: center;">
+              <a href="https://shiftfestival.be" style="background-color: #97EB4E; color: #000; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                Bekijk Website
+              </a>
+            </div>
+ 
+            <p style="font-size: 16px; line-height: 1.6;">
+              Nogmaals bedankt voor je inschrijving. Tot op <strong style="color: #E62474;">Shift</strong>!
+            </p>
+ 
+            <p style="font-size: 14px; line-height: 1.6; color: #666;">
+              Met vriendelijke groet,<br>
+              Het Promotieteam van Shift<br>
+              Studenten Multimedia en Creatieve Technologie,<br>
+              Erasmushogeschool Brussel
+            </p>
+          </div>`
 		});
 
 		console.log("✅ E-mail succesvol verzonden naar:", to);
@@ -141,12 +172,47 @@ const sendEmailWithToken = async (to, token) => {
 			subject: "Je stem-token voor Shift Festival",
 			text: `Bedankt voor je deelname! Gebruik deze unieke token om te stemmen: ${token}`,
 			html: `
-				<h2>Bedankt voor je deelname aan Shift Festival!</h2>
-				<p>Gebruik deze unieke stem-token om jouw stem uit te brengen:</p>
-				<p style="font-size: 20px; font-weight: bold; background: #f1f1f1; padding: 10px;">${token}</p>
-				<p>Stem via de stempagina of op het event zelf.</p>
-				<p>Tot binnenkort!</p>
-				<p>Team Shift Festival</p>
+				<div style="font-family: 'Arial', sans-serif; background-color: #ffffff; color: #333; padding: 40px; max-width: 600px; margin: auto; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+
+				<img src="https://shiftfestival.be/Logo.svg" alt="Shift Logo" style="width: 120px; margin-bottom: 30px;">
+
+				<h1 style="color: #E62474; font-size: 28px; margin-bottom: 10px;">
+					Bedankt voor je deelname aan Shift Festival, ${name}!
+				</h1>
+
+				<p style="font-size: 16px; line-height: 1.6;">
+					Hallo ${name},<br>
+					Wat fijn dat je erbij was op <strong style="color: #97EB4E;">Shift</strong>! 
+					We hopen dat je genoten hebt van alle inspirerende projecten, workshops en de unieke sfeer.
+				</p>
+
+				<!-- Token Section -->
+				<h2 style="color: #97EB4E; font-size: 20px; margin-top: 30px;">🔐 Jouw stem-token:</h2>
+				<p style="font-size: 20px; font-weight: bold; background: #f1f1f1; padding: 14px; border-radius: 8px; display: inline-block; margin-top: 10px;">
+					${token}
+				</p>
+
+				<p style="font-size: 16px; line-height: 1.6; margin-top: 20px;">
+					Gebruik deze token om te stemmen via de <a href="https://shiftfestival.be/stem" target="_blank" style="color: #E62474; text-decoration: none;">stempagina</a> of op het event zelf.
+				</p>
+
+				<div style="margin: 30px 0; text-align: center;">
+					<a href="https://shiftfestival.be/stem" style="background-color: #97EB4E; color: #000; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+					Breng je stem uit
+					</a>
+				</div>
+
+				<p style="font-size: 16px; line-height: 1.6;">
+					Nogmaals bedankt voor je komst. Tot ziens op een volgende editie van <strong style="color: #E62474;">Shift</strong>!
+				</p>
+
+				<p style="font-size: 14px; line-height: 1.6; color: #666;">
+					Met vriendelijke groet,<br>
+					Het Promotieteam van Shift<br>
+					Studenten Multimedia en Creatieve Technologie,<br>
+					Erasmushogeschool Brussel
+				</p>
+				</div>
 			`
 		});
 		console.log("📧 Token verstuurd naar:", to);
@@ -227,106 +293,179 @@ app.post("/api/submit-register-form", (req, res) => {
 });
 
 // Register voter
-app.post("/api/register-voter", (req, res) => {
+// app.post("/api/register-voter", (req, res) => {
+// 	createSshTunnelAndConnection((err, connection) => {
+// 		if (err) {
+// 			console.error("SSH/DB connection failed:", err);
+// 			return res.status(500).json({ message: "Database connection error" });
+// 		}
+
+// 		const { email } = req.body;
+// 		const emailRegex = /^[a-zA-Z0-9._%+-]+@ehb\.be$/;
+// 		//const emailRegex = /^[a-zA-Z0-9._%+-]+@student\.ehb\.be$/;
+
+// 		if (!email || !emailRegex.test(email)) {
+// 			connection.end();
+// 			return res.status(400).json({ message: "A valid @ehb.be email is required" });
+// 		}
+
+// 		const checkQuery = `SELECT token FROM voters WHERE email = ?`;
+
+// 		connection.query(checkQuery, [email], (err, results) => {
+// 			if (err) {
+// 				console.error("Query error:", err);
+// 				connection.end();
+// 				return res.status(500).json({ message: "Database query error" });
+// 			}
+
+// 			if (results.length > 0) {
+// 				connection.end();
+// 				sendEmailWithToken(email, results[0].token);
+// 				return res.status(200).json({
+// 					message: "Je was al geregistreerd, token opnieuw verzonden",
+// 					token: results[0].token
+// 				});
+// 			}
+
+// 			const token = crypto.randomBytes(16).toString("hex");
+// 			const insertQuery = `INSERT INTO voters (email, token) VALUES (?, ?)`;
+
+// 			connection.query(insertQuery, [email, token], async (err) => {
+// 				connection.end();
+
+// 				if (err) {
+// 					console.error("Insert error:", err);
+// 					return res.status(500).json({ message: "Database insert error" });
+// 				}
+
+// 				await sendEmailWithToken(email, token);
+
+// 				return res.status(201).json({
+// 					message: "Voter registered and token sent",
+// 					token
+// 				});
+// 			});
+// 		});
+// 	});
+// });
+
+// // Vote
+// app.post("/api/vote", (req, res) => {
+// 	createSshTunnelAndConnection((err, connection) => {
+// 		if (err) {
+// 			console.error("SSH/DB connection failed:", err);
+// 			return res.status(500).json({ message: "Database connection error" });
+// 		}
+
+// 		const { token, award_id, project_id } = req.body;
+
+// 		if (!token || !award_id || !project_id) {
+// 			connection.end();
+// 			return res.status(400).json({ message: "token, award_id, and project_id are required" });
+// 		}
+
+// 		const getVoterQuery = `SELECT id FROM voters WHERE token = ?`;
+
+// 		connection.query(getVoterQuery, [token], (err, results) => {
+// 			if (err) {
+// 				console.error("Query error:", err);
+// 				connection.end();
+// 				return res.status(500).json({ message: "Database query error" });
+// 			}
+
+// 			if (results.length === 0) {
+// 				connection.end();
+// 				return res.status(404).json({ message: "Invalid token" });
+// 			}
+
+// 			const voter_id = results[0].id;
+
+// 			const insertVoteQuery = `
+// 				INSERT INTO votes (voter_id, award_id, project_id)
+// 				VALUES (?, ?, ?)
+// 				ON DUPLICATE KEY UPDATE project_id = VALUES(project_id)
+// 			`;
+
+// 			connection.query(insertVoteQuery, [voter_id, award_id, project_id], (err) => {
+// 				connection.end();
+
+// 				if (err) {
+// 					console.error("Insert vote error:", err);
+// 					return res.status(500).json({ message: "Error casting vote" });
+// 				}
+
+// 				return res.status(200).json({ message: "Vote submitted successfully" });
+// 			});
+// 		});
+// 	});
+// });
+
+// Publieks voting counter add
+app.post("/api/publieksvotes", (req, res) => {
 	createSshTunnelAndConnection((err, connection) => {
 		if (err) {
 			console.error("SSH/DB connection failed:", err);
 			return res.status(500).json({ message: "Database connection error" });
 		}
 
-		const { email } = req.body;
+		const updateQuery = `UPDATE publieks_votes SET vote_count = vote_count + 1 WHERE project_id = 1`;
+		const selectQuery = `SELECT vote_count FROM publieks_votes WHERE project_id = 1`;
 
-		if (!email) {
-			connection.end();
-			return res.status(400).json({ message: "Email is required" });
-		}
-
-		const checkQuery = `SELECT token FROM voters WHERE email = ?`;
-
-		connection.query(checkQuery, [email], (err, results) => {
+		connection.query(updateQuery, (err) => {
 			if (err) {
-				console.error("Query error:", err);
 				connection.end();
-				return res.status(500).json({ message: "Database query error" });
+				console.error("Vote increment error:", err);
+				return res.status(500).json({ message: "Failed to increment vote count" });
 			}
 
-			if (results.length > 0) {
-				connection.end();
-				sendEmailWithToken(email, results[0].token);
-				return res.status(200).json({
-					message: "Je was al geregistreerd, token opnieuw verzonden",
-					token: results[0].token
-				});
-			}
-
-			const token = crypto.randomBytes(16).toString("hex");
-			const insertQuery = `INSERT INTO voters (email, token) VALUES (?, ?)`;
-
-			connection.query(insertQuery, [email, token], async (err) => {
+			connection.query(selectQuery, (err, results) => {
 				connection.end();
 
 				if (err) {
-					console.error("Insert error:", err);
-					return res.status(500).json({ message: "Database insert error" });
+					console.error("Vote fetch error:", err);
+					return res.status(500).json({ message: "Failed to fetch vote count" });
 				}
 
-				await sendEmailWithToken(email, token);
+					if (results.length === 0) {
+						return res.status(404).json({ message: `No vote count found for project_id ${projectId}` });
+					}
 
-				return res.status(201).json({
-					message: "Voter registered and token sent",
-					token
+				return res.status(200).json({
+					message: "Vote counted",
+					vote_count: results[0].vote_count
 				});
 			});
 		});
 	});
 });
 
-// Vote
-app.post("/api/vote", (req, res) => {
+// Get publieks votes
+app.get("/api/publieksvotes/:project_id", (req, res) => {
+	const projectId = req.params.project_id;
+
 	createSshTunnelAndConnection((err, connection) => {
 		if (err) {
 			console.error("SSH/DB connection failed:", err);
 			return res.status(500).json({ message: "Database connection error" });
 		}
 
-		const { token, award_id, project_id } = req.body;
+		const selectQuery = `SELECT vote_count FROM publieks_votes WHERE project_id = ?`;
 
-		if (!token || !award_id || !project_id) {
+		connection.query(selectQuery, [projectId], (err, results) => {
 			connection.end();
-			return res.status(400).json({ message: "token, award_id, and project_id are required" });
-		}
 
-		const getVoterQuery = `SELECT id FROM voters WHERE token = ?`;
-
-		connection.query(getVoterQuery, [token], (err, results) => {
 			if (err) {
-				console.error("Query error:", err);
-				connection.end();
-				return res.status(500).json({ message: "Database query error" });
+				console.error("Vote fetch error:", err);
+				return res.status(500).json({ message: "Failed to fetch vote count" });
 			}
 
 			if (results.length === 0) {
-				connection.end();
-				return res.status(404).json({ message: "Invalid token" });
+				return res.status(404).json({ message: `No votes found for project_id ${projectId}` });
 			}
 
-			const voter_id = results[0].id;
-
-			const insertVoteQuery = `
-				INSERT INTO votes (voter_id, award_id, project_id)
-				VALUES (?, ?, ?)
-				ON DUPLICATE KEY UPDATE project_id = VALUES(project_id)
-			`;
-
-			connection.query(insertVoteQuery, [voter_id, award_id, project_id], (err) => {
-				connection.end();
-
-				if (err) {
-					console.error("Insert vote error:", err);
-					return res.status(500).json({ message: "Error casting vote" });
-				}
-
-				return res.status(200).json({ message: "Vote submitted successfully" });
+			return res.status(200).json({
+				project_id: projectId,
+				vote_count: results[0].vote_count,
 			});
 		});
 	});
