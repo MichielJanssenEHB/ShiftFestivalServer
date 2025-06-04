@@ -286,9 +286,30 @@ app.post("/api/submit-register-form", (req, res) => {
 				}
 
 				res.status(200).json({ message: "Data inserted successfully" });
-				getAttendeeCountAndBroadcast();
 				sendEmail(email, firstName);
 			});
+		});
+	});
+});
+
+app.get("/api/counter", (req, res) => {
+	createSshTunnelAndConnection((err, connection) => {
+		if (err) {
+			console.error("SSH/DB connection failed:", err);
+			return res.status(500).json({ message: "Database connection error" });
+		}
+
+		const countUsers = `SELECT SUM(num_attendees) AS total FROM event_registrations`;
+
+		connection.query(countUsers, (err, results) => {
+			connection.end();
+
+			if (err) {
+				console.error("Error querying database:", err);
+				return res.status(500).json({ message: "Sorry something went wrong" });
+			}
+
+			res.json({ count: results[0].total || 0 });
 		});
 	});
 });
@@ -302,8 +323,8 @@ app.post("/api/register-voter", (req, res) => {
 		}
 
 		const { email } = req.body;
-		const emailRegex = /^[a-zA-Z0-9._%+-]+@ehb\.be$/;
-		//const emailRegex = /^[a-zA-Z0-9._%+-]+@student\.ehb\.be$/;
+		//const emailRegex = /^[a-zA-Z0-9._%+-]+@ehb\.be$/;
+		const emailRegex = /^[a-zA-Z0-9._%+-]+@student\.ehb\.be$/;
 
 		if (!email || !emailRegex.test(email)) {
 			connection.end();
@@ -472,57 +493,35 @@ app.get("/api/publieksvotes/:project_id", (req, res) => {
 	});
 });
 
-app.get('/api/attendee-stream', (req, res) => {
-	res.set({
-		'Content-Type': 'text/event-stream',
-		'Cache-Control': 'no-cache',
-		'Connection': 'keep-alive',
-	});
-	res.flushHeaders();
 
-	clients.push(res);
+app.post("/api/validate-token", (req, res) => {
+	const { token } = req.body;
 
-	// Optional: send initial count
+	if (!token) {
+		return res.status(400).json({ message: "❌ Token ontbreekt." });
+	}
+
 	createSshTunnelAndConnection((err, connection) => {
-		if (!err) {
-			connection.query("SELECT SUM(num_attendees) AS total FROM event_registrations", (err, results) => {
-				connection.end();
-				if (!err) {
-					const count = results[0].total;
-					res.write(`data: ${JSON.stringify({ count })}\n\n`);
-				}
-			});
+		if (err) {
+			console.error("SSH/DB connection failed:", err);
+			return res.status(500).json({ message: "❌ Fout bij databaseverbinding." });
 		}
-	});
 
-	req.on('close', () => {
-		const index = clients.indexOf(res);
-		if (index !== -1) clients.splice(index, 1);
-	});
-});
+		const sql = `SELECT email FROM voters WHERE token = ? LIMIT 1`;
 
-const getAttendeeCountAndBroadcast = () => {
-	createSshTunnelAndConnection((err, connection) => {
-		if (err) return console.error("Error counting attendees:", err);
-
-		const countQuery = "SELECT SUM(num_attendees) AS total FROM event_registrations";
-		connection.query(countQuery, (err, results) => {
+		connection.query(sql, [token], (err, results) => {
 			connection.end();
-			if (err) return console.error("Count query failed:", err);
 
-			const count = results[0].total;
-			broadcastAttendeeCount(count);
+			if (err || results.length === 0) {
+				console.error("❌ Ongeldige token.");
+				return res.status(401).json({ message: "❌ Ongeldige of onbekende token." });
+			}
+
+			const email = results[0].email;
+			return res.status(200).json({ message: "✅ Token geldig.", email });
 		});
 	});
-};
-
-// Your broadcast function
-const clients = [];
-
-const broadcastAttendeeCount = (count) => {
-	const data = `data: ${JSON.stringify({ count })}\n\n`;
-	clients.forEach((client) => client.write(data));
-};
+});
 
 // Start server
 app.listen(3000, () => {
