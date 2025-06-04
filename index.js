@@ -286,6 +286,7 @@ app.post("/api/submit-register-form", (req, res) => {
 				}
 
 				res.status(200).json({ message: "Data inserted successfully" });
+				getAttendeeCountAndBroadcast();
 				sendEmail(email, firstName);
 			});
 		});
@@ -471,27 +472,57 @@ app.get("/api/publieksvotes/:project_id", (req, res) => {
 	});
 });
 
-app.get("/api/counter", (req, res) => {
+app.get('/api/attendee-stream', (req, res) => {
+	res.set({
+		'Content-Type': 'text/event-stream',
+		'Cache-Control': 'no-cache',
+		'Connection': 'keep-alive',
+	});
+	res.flushHeaders();
+
+	clients.push(res);
+
+	// Optional: send initial count
 	createSshTunnelAndConnection((err, connection) => {
-		if (err) {
-			console.error("SSH/DB connection failed:", err);
-			return res.status(500).json({ message: "Database connection error" });
+		if (!err) {
+			connection.query("SELECT SUM(num_attendees) AS total FROM event_registrations", (err, results) => {
+				connection.end();
+				if (!err) {
+					const count = results[0].total;
+					res.write(`data: ${JSON.stringify({ count })}\n\n`);
+				}
+			});
 		}
+	});
 
-		const countUsers = `SELECT SUM(num_attendees) AS total FROM event_registrations`;
-
-		connection.query(countUsers, (err, results) => {
-			connection.end();
-
-			if (err) {
-				console.error("Error querying database:", err);
-				return res.status(500).json({ message: "Sorry something went wrong" });
-			}
-
-			res.json({ count: results[0].total || 0 });
-		});
+	req.on('close', () => {
+		const index = clients.indexOf(res);
+		if (index !== -1) clients.splice(index, 1);
 	});
 });
+
+const getAttendeeCountAndBroadcast = () => {
+	createSshTunnelAndConnection((err, connection) => {
+		if (err) return console.error("Error counting attendees:", err);
+
+		const countQuery = "SELECT SUM(num_attendees) AS total FROM event_registrations";
+		connection.query(countQuery, (err, results) => {
+			connection.end();
+			if (err) return console.error("Count query failed:", err);
+
+			const count = results[0].total;
+			broadcastAttendeeCount(count);
+		});
+	});
+};
+
+// Your broadcast function
+const clients = [];
+
+const broadcastAttendeeCount = (count) => {
+	const data = `data: ${JSON.stringify({ count })}\n\n`;
+	clients.forEach((client) => client.write(data));
+};
 
 // Start server
 app.listen(3000, () => {
