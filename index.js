@@ -111,100 +111,112 @@ const sendEmail = async (to, name) => {
 			subject: `Welkom bij Shift Festival, ${name}!`,
 			text: `Hallo ${name}, bedankt voor je inschrijving bij Shift Festival! We kijken ernaar uit om je te verwelkomen.`,
 			html: `<div
-				style="
-					font-family: 'Arial', sans-serif;
-					background-color: #ffffff;
-					color: #333;
-					padding: 40px;
-					max-width: 600px;
-					margin: auto;
-					border-radius: 12px;
-					box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-				"
+					style="
+						font-family: 'Arial', sans-serif;
+						background-color: #ffffff;
+						color: #333;
+						padding: 40px;
+						max-width: 600px;
+						margin: auto;
+						border-radius: 12px;
+						box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+					"
 				>
-				<img
-					src="https://shiftfestival.be/Logo.svg"
-					alt="Shift Logo"
-					style="width: 120px; margin-bottom: 30px"
-				/>
+					<img
+						src="https://shiftfestival.be/emailBanners/bannerMail.png"
+						alt="Shift Logo"
+						style="width: 100%; margin-bottom: 30px"
+					/>
+					<p style="font-size: 16px; line-height: 1.6">
+						Hallo ${name},<br />
+						<br />
+						Fijn dat je ingeschreven bent voor Shift! <br />
+						<br />
+						Tijdens dit event krijg je de kans om het werk van onze studenten te
+						ontdekken in een <strong>interactieve expo</strong> . Elk project heeft een
+						eigen stand waar je met de makers in gesprek kunt gaan over hun werk, hun
+						aanpak, hun toekomstplannen, ...  <br />
+						<br />
+						Daarnaast worden er <strong>rondleidingen</strong> georganiseerd doorheen de
+						expo en zal er een feestelijke prijsuitreiking zijn voor de beste
+						eindprojecten. We sluiten de avond af met een coole
+						<strong>VJ-Set</strong> en een lekkere <strong>barbecue</strong>. <br />
+						<br />
+						Alle informatie vind je op
+						<a target="_blank" href="https://shiftfestival.be/"
+							>https://shiftfestival.be/</a
+						>
+						 
+					</p>
 				
-				<h1 style="color: #e62474; font-size: 28px; margin-bottom: 10px">
-					Welkom bij Shift, ${name}!
-				</h1>
+					<h2 style="color: #000; font-size: 20px; margin-top: 30px; font-weight: bold">
+						Praktische info:
+					</h2>
+					<p style="font-size: 16px; line-height: 1.6; color: #000">
+						<strong>Datum: Vrijdag 20 juni 2025</strong><br />
+						<strong>Locatie:</strong>
+						<a href="https://maps.app.goo.gl/tQqbCeLRXPSfydr18" target="_blank"
+							><strong>Campus Kaai – Nijverheidskaai 170, 1070 Anderlecht  </strong></a
+						>
+						<strong>Tijd: 17:00 - 21:00 uur</strong><br />
+					</p>
 				
-				<p style="font-size: 16px; line-height: 1.6">
-					Hallo ${name},<br />
-					Bedankt voor je inschrijving voor
-					<strong style="color: rgb(0, 0, 0)">Shift</strong>! We zijn enthousiast om
-					je te verwelkomen op ons evenement.
-				</p>
+					<div style="margin: 30px 0; text-align: center">
+						<!-- .ics Calendar Button -->
+						<a
+							target="_blank"
+							href="https://shiftfestival.be/shift-festival-2025.ics"
+							style="
+								background-color: #ef4478;
+								color: #fff;
+								padding: 12px 24px;
+								text-decoration: none;
+								border-radius: 8px;
+								margin: 5px;
+								display: inline-block;
+								font-weight: bold;
+							"
+						>
+							Voeg toe aan agenda
+						</a>
 				
-				<h2 style="color: #000; font-size: 20px; margin-top: 30px; font-weight: bold">
-					Praktische info:
-				</h2>
-				<p style="font-size: 16px; line-height: 1.6; color: #000">
-					<strong>Datum:</strong> Vrijdag 20 juni 2025<br />
-					<strong>Tijd:</strong> 17:00 - 21:00 uur<br />
-					<strong>Award-uitreiking:</strong> 20:00 uur<br />
-					<strong>Locatie:</strong>
-					<a
-					href="https://maps.app.goo.gl/tQqbCeLRXPSfydr18"
-					target="_blank"
-					style="color: #e62474"
-					>Erasmushogeschool Brussel<br />Nijverheidskaai 170, 1070 Anderlecht</a
-					>
-				</p>
+						<!-- Google Calendar Button -->
+						<a
+							target="_blank"
+							href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Shift+Festival+2025&dates=20250621T150000Z/20250621T190000Z&details=Shift+Festival+met+expo,+workshops+en+award-uitreiking&location=Erasmushogeschool+Brussel,+Nijverheidskaai+170,+1070+Anderlecht"
+							style="
+								background-color: #8fd11c;
+								color: #fff;
+								padding: 12px 24px;
+								text-decoration: none;
+								border-radius: 8px;
+								margin: 5px;
+								display: inline-block;
+								font-weight: bold;
+							"
+						>
+							Voeg toe aan Google Calendar
+						</a>
+					</div>
 				
-				<div style="margin: 30px 0; text-align: center">
-					<!-- .ics Calendar Button -->
-					<a
-					target="_blank"
-					href="https://shiftfestival.be/shift-festival-2025.ics"
-					style="
-						background-color: #ef4478;
-						color: #fff;
-						padding: 12px 24px;
-						text-decoration: none;
-						border-radius: 8px;
-						margin: 5px;
-						display: inline-block;
-						font-weight: bold;
-					"
-					>
-					Voeg toe aan agenda
-					</a>
+					<p style="font-size: 16px; line-height: 1.6">
+						Nogmaals bedankt voor je inschrijving. Tot op
+						<strong>Shift</strong>!
+					</p>
 				
-					<!-- Google Calendar Button -->
-					<a
-					target="_blank"
-					href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Shift+Festival+2025&dates=20250621T150000Z/20250621T190000Z&details=Shift+Festival+met+expo,+workshops+en+award-uitreiking&location=Erasmushogeschool+Brussel,+Nijverheidskaai+170,+1070+Anderlecht"
-					style="
-						background-color: #cedc29;
-						color: #fff;
-						padding: 12px 24px;
-						text-decoration: none;
-						border-radius: 8px;
-						margin: 5px;
-						display: inline-block;
-						font-weight: bold;
-					"
-					>
-					Voeg toe aan Google Calendar
-					</a>
+					<p style="font-size: 14px; line-height: 1.6; color: #666">
+						Met vriendelijke groeten, <br />
+						Het Shift-team  <br />
+						Erasmushogeschool Brussel – Multimedia & Creatieve Technologie
+					</p>
+				
+					<img
+						src="https://shiftfestival.be/emailBanners/footerMail.png"
+						alt="Shift Logo"
+						style="width: 100%; margin-bottom: 30px"
+					/>
 				</div>
-				
-				<p style="font-size: 16px; line-height: 1.6">
-					Nogmaals bedankt voor je inschrijving. Tot op
-					<strong>Shift</strong>!
-				</p>
-				
-				<p style="font-size: 14px; line-height: 1.6; color: #666">
-					Met vriendelijke groet,<br />
-					Het Shift Festival Team<br />
-					Studenten Multimedia en Creatieve Technologie,<br />
-					Erasmushogeschool Brussel
-				</p>
-				</div>`
+				`
 		});
 
 		console.log("✅ E-mail succesvol verzonden naar:", to);
@@ -235,13 +247,10 @@ const sendEmailWithToken = async (to, token) => {
 					"
 				>
 					<img
-						src="https://shiftfestival.be/Logo.svg"
+						src="https://shiftfestival.be/emailBanners/bannerMail.png"
 						alt="Shift Logo"
-						style="width: 120px; margin-bottom: 30px"
+						style="width: 100%; margin-bottom: 30px"
 					/>
-					<h1 style="color: #e62474; font-size: 28px; margin-bottom: 10px">
-						Bedankt voor je deelname aan Shift Festival, ${name}!
-					</h1>
 					<p style="font-size: 16px; line-height: 1.6">
 						Hallo ${name},<br />
 						Wat fijn dat je erbij was op <strong>Shift</strong>! We hopen dat je genoten
@@ -270,9 +279,10 @@ const sendEmailWithToken = async (to, token) => {
 				
 					<div style="margin: 30px 0; text-align: center">
 						<a
+							target="_blank"
 							href="http://shiftfestival.be/#/voteReGRfguugXNEmMm/request-token"
 							style="
-								background-color: #cedc29;
+								background-color: #e62474;
 								color: #fff;
 								padding: 14px 28px;
 								text-decoration: none;
@@ -289,11 +299,16 @@ const sendEmailWithToken = async (to, token) => {
 						<strong>Shift</strong>!
 					</p>
 					<p style="font-size: 14px; line-height: 1.6; color: #666">
-						Met vriendelijke groet,<br />
-						Het Shift Festival Team<br />
-						Studenten Multimedia en Creatieve Technologie,<br />
-						Erasmushogeschool Brussel
+						Met vriendelijke groeten, <br />
+						Het Shift-team  <br />
+						Erasmushogeschool Brussel – Multimedia & Creatieve Technologie
 					</p>
+				
+					<img
+						src="https://shiftfestival.be/emailBanners/footerMail.png"
+						alt="Shift Logo"
+						style="width: 100%; margin-bottom: 30px"
+					/>
 				</div>
 			`
 		});
