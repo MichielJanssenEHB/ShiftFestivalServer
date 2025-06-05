@@ -420,8 +420,8 @@ app.post("/api/register-voter", (req, res) => {
 		}
 
 		const { email } = req.body;
-		//const emailRegex = /^[a-zA-Z0-9._%+-]+@ehb\.be$/;
-		const emailRegex = /^[a-zA-Z0-9._%+-]+@student\.ehb\.be$/;
+		const emailRegex = /^[a-zA-Z0-9._%+-]+@ehb\.be$/;
+		//const emailRegex = /^[a-zA-Z0-9._%+-]+@student\.ehb\.be$/;
 
 		if (!email || !emailRegex.test(email)) {
 			connection.end();
