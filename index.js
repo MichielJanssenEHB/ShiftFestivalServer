@@ -39,7 +39,7 @@ const tunnelConfig = {
 	port: 22,
 	username: process.env.DB_SSH_USER,
 	privateKey: process.env.SSH_PK.replace(/\\n/g, '\n'),
-	//privateKey: fs.readFileSync(process.env.SSH_PK_PATH)
+	// privateKey: fs.readFileSync(process.env.SSH_PK_PATH)
 };
 
 const forwardConfig = {
@@ -252,7 +252,7 @@ const sendEmailWithToken = async (to, token) => {
 						style="width: 100%; margin-bottom: 30px"
 					/>
 					<p style="font-size: 16px; line-height: 1.6">
-						Hallo ${name},<br />
+						Hallo,<br />
 						Wat fijn dat je erbij was op <strong>Shift</strong>! We hopen dat je genoten
 						hebt van alle inspirerende projecten, workshops en de unieke sfeer.
 					</p>
@@ -515,6 +515,54 @@ app.post("/api/vote", (req, res) => {
 
 				return res.status(200).json({ message: "Vote submitted successfully" });
 			});
+		});
+	});
+});
+
+app.get("/api/maillist/wants-updates", (req, res) => {
+	createSshTunnelAndConnection((err, connection) => {
+		if (err) {
+			console.error("SSH/DB connection failed:", err);
+			return res.status(500).json({ message: "Database connection error" });
+		}
+
+		const selectQuery = `SELECT first_name, last_name, email FROM event_registrations WHERE wants_event_updates = 1`;
+
+		connection.query(selectQuery, (err, results) => {
+			connection.end();
+
+			if (err) {
+				console.error("Error querying database:", err);
+				return res.status(500).json({ message: "Sorry something went wrong" });
+			}
+
+			const users = results.map(({ first_name, last_name, email }) => ({ first_name, last_name, email }));
+
+			res.json({ users });
+		});
+	});
+});
+
+app.get("/api/maillist/sponsorships", (req, res) => {
+	createSshTunnelAndConnection((err, connection) => {
+		if (err) {
+			console.error("SSH/DB connection failed:", err);
+			return res.status(500).json({ message: "Database connection error" });
+		}
+
+		const selectQuery = `SELECT first_name, last_name, email, company_name FROM event_registrations WHERE wants_sponsorship = 1`;
+
+		connection.query(selectQuery, (err, results) => {
+			connection.end();
+
+			if (err) {
+				console.error("Error querying database:", err);
+				return res.status(500).json({ message: "Sorry something went wrong" });
+			}
+
+			const users = results.map(({ first_name, last_name, email, company_name }) => ({ first_name, last_name, email, company_name }));
+
+			res.json({ users });
 		});
 	});
 });
