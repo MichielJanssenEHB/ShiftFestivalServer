@@ -8,14 +8,16 @@ const nodemailer = require("nodemailer");
 const { Client } = require('ssh2');
 const fs = require('fs');
 const crypto = require("crypto");
+const cookieParser = require('cookie-parser');
 
-const corsOptions = {
-	origin: "*",
-};
+app.use(cors({
+  origin: 'https://shiftfestival.be',
+  credentials: true,
+}));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors(corsOptions));
+app.use(cookieParser());
 
 // app.use((req, res, next) => {
 //   res.setHeader(
@@ -39,7 +41,7 @@ const tunnelConfig = {
 	port: 22,
 	username: process.env.DB_SSH_USER,
 	privateKey: process.env.SSH_PK.replace(/\\n/g, '\n'),
-	// privateKey: fs.readFileSync(process.env.SSH_PK_PATH)
+	//privateKey: fs.readFileSync(process.env.SSH_PK_PATH)
 };
 
 const forwardConfig = {
@@ -232,7 +234,7 @@ const sendEmailWithToken = async (to, token) => {
 			from: '"Shift Festival" <info@shiftfestival.be>',
 			to,
 			subject: "Je stem-token voor Shift Festival",
-			text: `Bedankt voor je deelname! Gebruik deze unieke token om te stemmen: ${token}`,
+			text: `Bedankt voor je deelname! Gebruik deze unieke link om te stemmen: ${token}`,
 			html: `
 				<div
 					style="
@@ -411,63 +413,6 @@ app.get("/api/counter", (req, res) => {
 	});
 });
 
-// Register voter
-app.post("/api/register-voter", (req, res) => {
-	createSshTunnelAndConnection((err, connection) => {
-		if (err) {
-			console.error("SSH/DB connection failed:", err);
-			return res.status(500).json({ message: "Database connection error" });
-		}
-
-		const { email } = req.body;
-		const emailRegex = /^[a-zA-Z0-9._%+-]+@ehb\.be$/;
-		//const emailRegex = /^[a-zA-Z0-9._%+-]+@student\.ehb\.be$/;
-
-		if (!email || !emailRegex.test(email)) {
-			connection.end();
-			return res.status(400).json({ message: "A valid @ehb.be email is required" });
-		}
-
-		const checkQuery = `SELECT token FROM voters WHERE email = ?`;
-
-		connection.query(checkQuery, [email], (err, results) => {
-			if (err) {
-				console.error("Query error:", err);
-				connection.end();
-				return res.status(500).json({ message: "Database query error" });
-			}
-
-			if (results.length > 0) {
-				connection.end();
-				sendEmailWithToken(email, results[0].token);
-				return res.status(200).json({
-					message: "Je was al geregistreerd, token opnieuw verzonden",
-					token: results[0].token
-				});
-			}
-
-			const token = crypto.randomBytes(16).toString("hex");
-			const insertQuery = `INSERT INTO voters (email, token) VALUES (?, ?)`;
-
-			connection.query(insertQuery, [email, token], async (err) => {
-				connection.end();
-
-				if (err) {
-					console.error("Insert error:", err);
-					return res.status(500).json({ message: "Database insert error" });
-				}
-
-				await sendEmailWithToken(email, token);
-
-				return res.status(201).json({
-					message: "Voter registered and token sent",
-					token
-				});
-			});
-		});
-	});
-});
-
 // Vote
 app.post("/api/vote", (req, res) => {
 	createSshTunnelAndConnection((err, connection) => {
@@ -486,34 +431,150 @@ app.post("/api/vote", (req, res) => {
 		const getVoterQuery = `SELECT id FROM voters WHERE token = ?`;
 
 		connection.query(getVoterQuery, [token], (err, results) => {
-			if (err) {
-				console.error("Query error:", err);
-				connection.end();
-				return res.status(500).json({ message: "Database query error" });
-			}
-
-			if (results.length === 0) {
+			if (err || results.length === 0) {
 				connection.end();
 				return res.status(404).json({ message: "Invalid token" });
 			}
 
 			const voter_id = results[0].id;
 
-			const insertVoteQuery = `
-				INSERT INTO votes (voter_id, award_id, project_id)
-				VALUES (?, ?, ?)
-				ON DUPLICATE KEY UPDATE project_id = VALUES(project_id)
+			// Check if already voted for this project
+			const checkVoteQuery = `
+				SELECT id FROM votes
+				WHERE voter_id = ? AND award_id = ? AND project_id = ?
 			`;
 
-			connection.query(insertVoteQuery, [voter_id, award_id, project_id], (err) => {
+			connection.query(checkVoteQuery, [voter_id, award_id, project_id], (err, voteExists) => {
+				if (err) {
+					connection.end();
+					return res.status(500).json({ message: "Database query error" });
+				}
+
+				if (voteExists.length > 0) {
+					connection.end();
+					return res.status(200).json({ message: "Already voted for this project" });
+				}
+
+				// Count how many votes user already cast for this award
+				const countQuery = `
+					SELECT COUNT(*) AS vote_count
+					FROM votes
+					WHERE voter_id = ? AND award_id = ?
+				`;
+
+				connection.query(countQuery, [voter_id, award_id], (err, results) => {
+					if (err) {
+						connection.end();
+						return res.status(500).json({ message: "Database query error" });
+					}
+
+					const voteCount = results[0].vote_count;
+
+					if (voteCount >= 3) {
+						connection.end();
+						return res.status(400).json({ message: "Vote limit reached. Remove one to continue." });
+					}
+
+					// Insert the vote
+					const insertQuery = `
+						INSERT INTO votes (voter_id, award_id, project_id)
+						VALUES (?, ?, ?)
+					`;
+
+					connection.query(insertQuery, [voter_id, award_id, project_id], (err) => {
+						connection.end();
+
+						if (err) {
+							console.error("Insert error:", err);
+							return res.status(500).json({ message: "Error casting vote" });
+						}
+
+						return res.status(200).json({ message: "Vote cast successfully" });
+					});
+				});
+			});
+		});
+	});
+});
+
+// Vote
+app.delete("/api/vote", (req, res) => {
+	createSshTunnelAndConnection((err, connection) => {
+		if (err) {
+			return res.status(500).json({ message: "Database connection error" });
+		}
+
+		const { token, award_id, project_id } = req.body;
+
+		if (!token || !award_id || !project_id) {
+			connection.end();
+			return res.status(400).json({ message: "token, award_id, and project_id are required" });
+		}
+
+		const getVoterQuery = `SELECT id FROM voters WHERE token = ?`;
+
+		connection.query(getVoterQuery, [token], (err, results) => {
+			if (err || results.length === 0) {
+				connection.end();
+				return res.status(404).json({ message: "Invalid token" });
+			}
+
+			const voter_id = results[0].id;
+
+			const deleteQuery = `
+				DELETE FROM votes
+				WHERE voter_id = ? AND award_id = ? AND project_id = ?
+			`;
+
+			connection.query(deleteQuery, [voter_id, award_id, project_id], (err, result) => {
 				connection.end();
 
 				if (err) {
-					console.error("Insert vote error:", err);
-					return res.status(500).json({ message: "Error casting vote" });
+					return res.status(500).json({ message: "Error removing vote" });
 				}
 
-				return res.status(200).json({ message: "Vote submitted successfully" });
+				return res.status(200).json({ message: "Vote removed successfully" });
+			});
+		});
+	});
+});
+
+app.delete("/api/vote", (req, res) => {
+	createSshTunnelAndConnection((err, connection) => {
+		if (err) {
+			return res.status(500).json({ message: "Database connection error" });
+		}
+
+		const { token, award_id, project_id } = req.body;
+
+		if (!token || !award_id || !project_id) {
+			connection.end();
+			return res.status(400).json({ message: "token, award_id, and project_id are required" });
+		}
+
+		const getVoterQuery = `SELECT id FROM voters WHERE token = ?`;
+
+		connection.query(getVoterQuery, [token], (err, results) => {
+			if (err || results.length === 0) {
+				connection.end();
+				return res.status(404).json({ message: "Invalid token" });
+			}
+
+			const voter_id = results[0].id;
+
+			const deleteQuery = `
+				DELETE FROM votes
+				WHERE voter_id = ? AND award_id = ? AND project_id = ?
+			`;
+
+			connection.query(deleteQuery, [voter_id, award_id, project_id], (err, result) => {
+				connection.end();
+
+				if (err) {
+					return res.status(500).json({ message: "Error removing vote" });
+				}
+
+				return res.status(200).json({ message: "Vote removed successfully" });
 			});
 		});
 	});
@@ -638,7 +699,107 @@ app.get("/api/publieksvotes/:project_id", (req, res) => {
 	});
 });
 
+// Register voter
+app.post("/api/register-voter", (req, res) => {
+	createSshTunnelAndConnection((err, connection) => {
+		if (err) {
+			console.error("SSH/DB connection failed:", err);
+			return res.status(500).json({ message: "Database connection error" });
+		}
 
+		const { email } = req.body;
+		//const emailRegex = /^[a-zA-Z0-9._%+-]+@ehb\.be$/;
+		// const emailRegex = /^[a-zA-Z0-9._%+-]+@student\.ehb\.be$/;
+
+		// if (!email || !emailRegex.test(email)) {
+		// 	connection.end();
+		// 	return res.status(400).json({ message: "A valid @ehb.be email is required" });
+		// }
+
+		const checkQuery = 'SELECT token FROM voters WHERE email = ?';
+
+		connection.query(checkQuery, [email], (err, results) => {
+			if (err) {
+				console.error("Query error:", err);
+				connection.end();
+				return res.status(500).json({ message: "Database query error" });
+			}
+
+			if (results.length > 0) {
+				connection.end();
+				sendEmailWithToken(email, 'https://shiftfestival.be/?token=${results[0].token}');
+				return res.status(200).json({
+					message: "Je was al geregistreerd, token opnieuw verzonden",
+					token: results[0].token
+				});
+			}
+
+			const token = crypto.randomBytes(16).toString("hex");
+			const insertQuery = `INSERT INTO voters (email, token) VALUES (?, ?)`;
+
+			connection.query(insertQuery, [email, token], async (err) => {
+				connection.end();
+
+				if (err) {
+					console.error("Insert error:", err);
+					return res.status(500).json({ message: "Database insert error" });
+				}
+
+				const tokenLink = 'https://shiftfestival.be/?token=${token}'
+
+				await sendEmailWithToken(email, tokenLink);
+
+				return res.status(201).json({
+					message: "Voter registered and token sent",
+					token
+				});
+			});
+		});
+	});
+});
+
+app.get('/api/verify-token', (req, res) => {
+  const { token } = req.query;
+
+  if (!token) {
+    return res.status(400).json({ success: false, message: 'Token is required' });
+  }
+
+  createSshTunnelAndConnection((err, connection) => {
+    if (err) {
+      console.error('SSH/DB connection failed:', err);
+      return res.status(500).json({ success: false, message: 'Database connection error' });
+    }
+
+    const query = 'SELECT email FROM voters WHERE token = ? LIMIT 1';
+
+    connection.query(query, [token], (err, results) => {
+      connection.end();
+
+      if (err) {
+        console.error('Query error:', err);
+        return res.status(500).json({ success: false, message: 'Database query error' });
+      }
+
+      if (results.length === 0) {
+        return res.status(400).json({ success: false, message: 'Invalid token' });
+      }
+
+      res.cookie('verified', 'true', {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'Lax',
+        domain: '.shiftfestival.be',
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+      });
+
+      return res.json({ success: true });
+    });
+  });
+});
+
+
+// Validate token OLD
 app.post("/api/validate-token", (req, res) => {
 	const { token } = req.body;
 
@@ -666,6 +827,13 @@ app.post("/api/validate-token", (req, res) => {
 			return res.status(200).json({ message: "✅ Token geldig.", email });
 		});
 	});
+});
+
+app.get('/api/user-status', (req, res) => {
+  if (req.cookies.verified === 'true') {
+    return res.json({ verified: true });
+  }
+  res.json({ verified: false });
 });
 
 // Start server
