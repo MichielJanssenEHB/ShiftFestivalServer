@@ -420,7 +420,7 @@ app.post("/api/vote", (req, res) => {
 			console.error("SSH/DB connection failed:", err);
 			return res.status(500).json({ message: "Database connection error" });
 		}
-		
+
 		const token = req.cookies.token;
 		const { award_ids, project_id } = req.body;
 
@@ -569,10 +569,9 @@ app.post("/api/votes", (req, res) => {
 			return res.status(500).json({ message: "Database connection error" });
 		}
 
-		const { token } = req.body;
+		const token = req.cookies.token;
 
 		if (!token) {
-			connection.end();
 			return res.status(400).json({ message: "Token is required" });
 		}
 
