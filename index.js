@@ -421,11 +421,11 @@ app.post("/api/vote", (req, res) => {
 			return res.status(500).json({ message: "Database connection error" });
 		}
 
-		const { token, award_id, project_id } = req.body;
+		const { token, award_ids, project_id } = req.body;
 
-		if (!token || !award_id || !project_id) {
+		if (!token || !Array.isArray(award_ids) || award_ids.length === 0 || !project_id) {
 			connection.end();
-			return res.status(400).json({ message: "token, award_id, and project_id are required" });
+			return res.status(400).json({ message: "token, award_ids (array), and project_id are required" });
 		}
 
 		const getVoterQuery = `SELECT id FROM voters WHERE token = ?`;
@@ -438,64 +438,86 @@ app.post("/api/vote", (req, res) => {
 
 			const voter_id = results[0].id;
 
-			// Check if already voted for this project
-			const checkVoteQuery = `
-				SELECT id FROM votes
-				WHERE voter_id = ? AND award_id = ? AND project_id = ?
-			`;
+			const resultsSummary = {
+				successful: [],
+				alreadyVoted: [],
+				limitReached: [],
+				errors: []
+			};
 
-			connection.query(checkVoteQuery, [voter_id, award_id, project_id], (err, voteExists) => {
-				if (err) {
-					connection.end();
-					return res.status(500).json({ message: "Database query error" });
-				}
+			let pending = award_ids.length;
 
-				if (voteExists.length > 0) {
-					connection.end();
-					return res.status(200).json({ message: "Already voted for this project" });
-				}
-
-				// Count how many votes user already cast for this award
-				const countQuery = `
-					SELECT COUNT(*) AS vote_count
-					FROM votes
-					WHERE voter_id = ? AND award_id = ?
+			award_ids.forEach((award_id) => {
+				// Check if already voted for this project in this award
+				const checkVoteQuery = `
+					SELECT id FROM votes
+					WHERE voter_id = ? AND award_id = ? AND project_id = ?
 				`;
 
-				connection.query(countQuery, [voter_id, award_id], (err, results) => {
+				connection.query(checkVoteQuery, [voter_id, award_id, project_id], (err, voteExists) => {
 					if (err) {
-						connection.end();
-						return res.status(500).json({ message: "Database query error" });
+						resultsSummary.errors.push({ award_id, error: "DB error" });
+						checkDone();
+						return;
 					}
 
-					const voteCount = results[0].vote_count;
-
-					if (voteCount >= 3) {
-						connection.end();
-						return res.status(400).json({ message: "Vote limit reached. Remove one to continue." });
+					if (voteExists.length > 0) {
+						resultsSummary.alreadyVoted.push(award_id);
+						checkDone();
+						return;
 					}
 
-					// Insert the vote
-					const insertQuery = `
-						INSERT INTO votes (voter_id, award_id, project_id)
-						VALUES (?, ?, ?)
+					// Count how many votes user already cast for this award
+					const countQuery = `
+						SELECT COUNT(*) AS vote_count
+						FROM votes
+						WHERE voter_id = ? AND award_id = ?
 					`;
 
-					connection.query(insertQuery, [voter_id, award_id, project_id], (err) => {
-						connection.end();
-
+					connection.query(countQuery, [voter_id, award_id], (err, results) => {
 						if (err) {
-							console.error("Insert error:", err);
-							return res.status(500).json({ message: "Error casting vote" });
+							resultsSummary.errors.push({ award_id, error: "DB error" });
+							checkDone();
+							return;
 						}
 
-						return res.status(200).json({ message: "Vote cast successfully" });
+						const voteCount = results[0].vote_count;
+
+						if (voteCount >= 3) {
+							resultsSummary.limitReached.push(award_id);
+							checkDone();
+							return;
+						}
+
+						// Insert the vote
+						const insertQuery = `
+							INSERT INTO votes (voter_id, award_id, project_id)
+							VALUES (?, ?, ?)
+						`;
+
+						connection.query(insertQuery, [voter_id, award_id, project_id], (err) => {
+							if (err) {
+								resultsSummary.errors.push({ award_id, error: "Insert error" });
+							} else {
+								resultsSummary.successful.push(award_id);
+							}
+							checkDone();
+						});
 					});
 				});
 			});
+
+			function checkDone() {
+				pending--;
+				if (pending === 0) {
+					connection.end();
+					return res.status(200).json(resultsSummary);
+				}
+			}
 		});
 	});
 });
+
 
 // Vote
 app.delete("/api/vote", (req, res) => {
@@ -534,6 +556,62 @@ app.delete("/api/vote", (req, res) => {
 				}
 
 				return res.status(200).json({ message: "Vote removed successfully" });
+			});
+		});
+	});
+});
+
+// Get projects per category per voter
+app.post("/api/votes", (req, res) => {
+	createSshTunnelAndConnection((err, connection) => {
+		if (err) {
+			console.error("SSH/DB connection failed:", err);
+			return res.status(500).json({ message: "Database connection error" });
+		}
+
+		const { token } = req.body;
+
+		if (!token) {
+			connection.end();
+			return res.status(400).json({ message: "Token is required" });
+		}
+
+		const getVoterQuery = `SELECT id FROM voters WHERE token = ?`;
+
+		connection.query(getVoterQuery, [token], (err, results) => {
+			if (err || results.length === 0) {
+				connection.end();
+				return res.status(404).json({ message: "Invalid token" });
+			}
+
+			const voter_id = results[0].id;
+
+			const votesQuery = `
+				SELECT awards.name AS award_name, projects.id AS project_id, projects.name AS project_name
+				FROM votes
+				JOIN projects ON votes.project_id = projects.id
+				JOIN awards ON votes.award_id = awards.id
+				WHERE votes.voter_id = ?
+			`;
+
+			connection.query(votesQuery, [voter_id], (err, voteResults) => {
+				connection.end();
+
+				if (err) {
+					console.error("Error fetching votes:", err);
+					return res.status(500).json({ message: "Failed to fetch votes" });
+				}
+
+				const groupedVotes = {};
+
+				voteResults.forEach(({ award_name, project_id, project_name }) => {
+					if (!groupedVotes[award_name]) {
+						groupedVotes[award_name] = [];
+					}
+					groupedVotes[award_name].push({ project_id, project_name });
+				});
+
+				return res.status(200).json({ votes: groupedVotes });
 			});
 		});
 	});
@@ -744,7 +822,7 @@ app.get('/api/verify-token', (req, res) => {
         return res.status(400).json({ success: false, message: 'Invalid token' });
       }
 
-      res.cookie('verified', 'true', {
+      res.cookie('token', token, {
         httpOnly: true,
         secure: true,
         sameSite: 'Lax',
@@ -789,10 +867,32 @@ app.post("/api/validate-token", (req, res) => {
 });
 
 app.get('/api/user-status', (req, res) => {
-  if (req.cookies.verified === 'true') {
-    return res.json({ verified: true });
+  const token = req.cookies.token;
+
+  if (!token) {
+    return res.json({ verified: false });
   }
-  res.json({ verified: false });
+
+  createSshTunnelAndConnection((err, connection) => {
+    if (err) {
+      console.error("SSH/DB connection failed:", err);
+      return res.status(500).json({ verified: false, message: "Database connection error" });
+    }
+
+    const sql = `SELECT email FROM voters WHERE token = ? LIMIT 1`;
+
+    connection.query(sql, [token], (err, results) => {
+      connection.end();
+
+      if (err || results.length === 0) {
+        console.error("Invalid token.");
+        return res.json({ verified: false });
+      }
+
+      // Token is valid
+      return res.json({ verified: true, email: results[0].email });
+    });
+  });
 });
 
 // Start server
