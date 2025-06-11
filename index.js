@@ -562,7 +562,7 @@ app.delete("/api/vote", (req, res) => {
 });
 
 // Get projects per category per voter
-app.post("/api/votes", (req, res) => {
+app.get("/api/votes", (req, res) => {
 	createSshTunnelAndConnection((err, connection) => {
 		if (err) {
 			console.error("SSH/DB connection failed:", err);
