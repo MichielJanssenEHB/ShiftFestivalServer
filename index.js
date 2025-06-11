@@ -539,47 +539,6 @@ app.delete("/api/vote", (req, res) => {
 	});
 });
 
-app.delete("/api/vote", (req, res) => {
-	createSshTunnelAndConnection((err, connection) => {
-		if (err) {
-			return res.status(500).json({ message: "Database connection error" });
-		}
-
-		const { token, award_id, project_id } = req.body;
-
-		if (!token || !award_id || !project_id) {
-			connection.end();
-			return res.status(400).json({ message: "token, award_id, and project_id are required" });
-		}
-
-		const getVoterQuery = `SELECT id FROM voters WHERE token = ?`;
-
-		connection.query(getVoterQuery, [token], (err, results) => {
-			if (err || results.length === 0) {
-				connection.end();
-				return res.status(404).json({ message: "Invalid token" });
-			}
-
-			const voter_id = results[0].id;
-
-			const deleteQuery = `
-				DELETE FROM votes
-				WHERE voter_id = ? AND award_id = ? AND project_id = ?
-			`;
-
-			connection.query(deleteQuery, [voter_id, award_id, project_id], (err, result) => {
-				connection.end();
-
-				if (err) {
-					return res.status(500).json({ message: "Error removing vote" });
-				}
-
-				return res.status(200).json({ message: "Vote removed successfully" });
-			});
-		});
-	});
-});
-
 app.get("/api/maillist/wants-updates", (req, res) => {
 	createSshTunnelAndConnection((err, connection) => {
 		if (err) {
@@ -727,7 +686,7 @@ app.post("/api/register-voter", (req, res) => {
 
 			if (results.length > 0) {
 				connection.end();
-				sendEmailWithToken(email, 'https://shiftfestival.be/?token=${results[0].token}');
+				sendEmailWithToken(email, 'https://shiftfestival.be/?token=' + results[0].token);
 				return res.status(200).json({
 					message: "Je was al geregistreerd, token opnieuw verzonden",
 					token: results[0].token
@@ -745,7 +704,7 @@ app.post("/api/register-voter", (req, res) => {
 					return res.status(500).json({ message: "Database insert error" });
 				}
 
-				const tokenLink = 'https://shiftfestival.be/?token=${token}'
+				const tokenLink = 'https://shiftfestival.be/?token=' + token;
 
 				await sendEmailWithToken(email, tokenLink);
 
