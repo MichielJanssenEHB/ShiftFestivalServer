@@ -282,7 +282,7 @@ const sendEmailWithToken = async (to, token) => {
 					<div style="margin: 30px 0; text-align: center">
 						<a
 							target="_blank"
-							href="http://shiftfestival.be/#/voteReGRfguugXNEmMm/request-token"
+							href="${token}"
 							style="
 								background-color: #e62474;
 								color: #fff;
