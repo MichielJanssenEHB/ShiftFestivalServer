@@ -185,7 +185,7 @@ const sendEmail = async (to, name) => {
 						<!-- Google Calendar Button -->
 						<a
 							target="_blank"
-							href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Shift+Festival+2025&dates=20250621T150000Z/20250621T190000Z&details=Shift+Festival+met+expo,+workshops+en+award-uitreiking&location=Erasmushogeschool+Brussel,+Nijverheidskaai+170,+1070+Anderlecht"
+							href="https://calendar.google.com/calendar/u/0/r/eventedit?text=Shift+Festival+2025&dates=20250620T150000Z/20250621T190000Z&details=Shift+Festival+met+expo,+workshops+en+award-uitreiking&location=Erasmushogeschool+Brussel,+Nijverheidskaai+170,+1070+Anderlecht"
 							style="
 								background-color: #8fd11c;
 								color: #fff;
