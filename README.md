@@ -1,4 +1,4 @@
-# Project Name
+# Shiftfestival Backend
 
 This project is the **Express** backend for the Shiftfestival website
 
