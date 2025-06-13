@@ -392,41 +392,25 @@ app.post("/api/submit-register-form", (req, res) => {
 });
 
 app.get("/api/counter", (req, res) => {
-    createSshTunnelAndConnection((err, connection) => {
-        if (err) {
-            console.error("SSH/DB connection failed:", err);
-            return res.status(500).json({ message: "Database connection error" });
-        }
+	createSshTunnelAndConnection((err, connection) => {
+		if (err) {
+			console.error("SSH/DB connection failed:", err);
+			return res.status(500).json({ message: "Database connection error" });
+		}
 
-        const totalAttendeesQuery = `SELECT SUM(num_attendees) AS total FROM event_registrations`;
-        const countByRoleQuery = `
-            SELECT role, COUNT(*) AS registrations
-            FROM event_registrations
-            GROUP BY role
-        `;
+		const countUsers = 'SELECT SUM(num_attendees) AS total FROM event_registrations';
 
-        connection.query(totalAttendeesQuery, (err, totalResults) => {
-            if (err) {
-                connection.end();
-                console.error("Error querying total:", err);
-                return res.status(500).json({ message: "Error fetching total" });
-            }
+		connection.query(countUsers, (err, results) => {
+			connection.end();
 
-            connection.query(countByRoleQuery, (err, roleResults) => {
-                connection.end();
+			if (err) {
+				console.error("Error querying database:", err);
+				return res.status(500).json({ message: "Sorry something went wrong" });
+			}
 
-                if (err) {
-                    console.error("Error querying roles:", err);
-                    return res.status(500).json({ message: "Error fetching roles" });
-                }
-
-                res.json({
-                    total: totalResults[0].total || 0,
-                    byRole: roleResults // Example: [{ role: 'student', registrations: 15 }, ...]
-                });
-            });
-        });
-    });
+			res.json({ count: results[0].total || 0 });
+		});
+	});
 });
 
 // Vote
