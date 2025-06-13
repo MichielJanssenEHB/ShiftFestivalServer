@@ -40,8 +40,8 @@ const tunnelConfig = {
 	host: process.env.DB_SSH_HOST,
 	port: 22,
 	username: process.env.DB_SSH_USER,
-	privateKey: process.env.SSH_PK.replace(/\\n/g, '\n'),
-	//privateKey: fs.readFileSync(process.env.SSH_PK_PATH)
+	//privateKey: process.env.SSH_PK.replace(/\\n/g, '\n'),
+	privateKey: fs.readFileSync(process.env.SSH_PK_PATH)
 };
 
 const forwardConfig = {
@@ -392,25 +392,41 @@ app.post("/api/submit-register-form", (req, res) => {
 });
 
 app.get("/api/counter", (req, res) => {
-	createSshTunnelAndConnection((err, connection) => {
-		if (err) {
-			console.error("SSH/DB connection failed:", err);
-			return res.status(500).json({ message: "Database connection error" });
-		}
+    createSshTunnelAndConnection((err, connection) => {
+        if (err) {
+            console.error("SSH/DB connection failed:", err);
+            return res.status(500).json({ message: "Database connection error" });
+        }
 
-		const countUsers = `SELECT SUM(num_attendees) AS total FROM event_registrations`;
+        const totalAttendeesQuery = `SELECT SUM(num_attendees) AS total FROM event_registrations`;
+        const countByRoleQuery = `
+            SELECT role, COUNT(*) AS registrations
+            FROM event_registrations
+            GROUP BY role
+        `;
 
-		connection.query(countUsers, (err, results) => {
-			connection.end();
+        connection.query(totalAttendeesQuery, (err, totalResults) => {
+            if (err) {
+                connection.end();
+                console.error("Error querying total:", err);
+                return res.status(500).json({ message: "Error fetching total" });
+            }
 
-			if (err) {
-				console.error("Error querying database:", err);
-				return res.status(500).json({ message: "Sorry something went wrong" });
-			}
+            connection.query(countByRoleQuery, (err, roleResults) => {
+                connection.end();
 
-			res.json({ count: results[0].total || 0 });
-		});
-	});
+                if (err) {
+                    console.error("Error querying roles:", err);
+                    return res.status(500).json({ message: "Error fetching roles" });
+                }
+
+                res.json({
+                    total: totalResults[0].total || 0,
+                    byRole: roleResults // Example: [{ role: 'student', registrations: 15 }, ...]
+                });
+            });
+        });
+    });
 });
 
 // Vote
