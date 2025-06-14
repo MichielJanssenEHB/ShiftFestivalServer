@@ -561,6 +561,87 @@ app.delete("/api/vote", (req, res) => {
 	});
 });
 
+app.get('/api/projects', (req, res) => {
+  createSshTunnelAndConnection((err, connection) => {
+    if (err) {
+      console.error('SSH/DB connection failed:', err);
+      return res.status(500).json({ message: 'Database connection error' });
+    }
+
+    const query = `
+      SELECT
+        name,
+        creator_name,
+        description,
+        key_image_path,
+        magazine_pdf_path,
+        linkedin_link,
+        showreel_link,
+        promotor_name,
+        category,
+        room
+      FROM projects
+      ORDER BY name;
+    `;
+
+    connection.query(query, (err, results) => {
+      connection.end();
+
+      if (err) {
+        console.error('Error querying database:', err);
+        return res.status(500).json({ message: 'Sorry something went wrong' });
+      }
+
+      res.json(results);
+    });
+  });
+});
+app.get('/api/projects/:creator_name', (req, res) => {
+  const creator = req.params.creator_name.replace(/_/g, ' ').trim();
+  const searchValue = `%${creator}%`;
+
+  if (!creator) {
+    return res.status(400).json({ message: "Missing creator name" });
+  }
+
+  createSshTunnelAndConnection((err, connection) => {
+    if (err) {
+      console.error('SSH/DB connection failed:', err);
+      return res.status(500).json({ message: 'Database connection error' });
+    }
+
+    const query = `
+      SELECT
+        name,
+        creator_name,
+        description,
+        key_image_path,
+        magazine_pdf_path,
+        linkedin_link,
+        showreel_link,
+        promotor_name,
+        category,
+        room
+      FROM projects
+      WHERE LOWER(creator_name) LIKE LOWER(?)
+      ORDER BY name;
+    `;
+
+    connection.query(query, [searchValue], (err, results) => {
+      connection.end();
+
+      if (err) {
+        console.error('Error querying database:', err);
+        return res.status(500).json({ message: 'Sorry something went wrong' });
+      }
+
+      res.json(results);
+    });
+  });
+});
+
+
+
 // Get projects per category per voter
 app.get("/api/votes", (req, res) => {
 	createSshTunnelAndConnection((err, connection) => {
