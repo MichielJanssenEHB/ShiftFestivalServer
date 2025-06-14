@@ -10,8 +10,16 @@ const fs = require('fs');
 const crypto = require("crypto");
 const cookieParser = require('cookie-parser');
 
+const allowedOrigins = ['https://shiftfestival.be', 'http://localhost:5173'];
+
 app.use(cors({
-  origin: 'https://shiftfestival.be',
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
 }));
 
