@@ -760,43 +760,95 @@ app.get("/api/maillist/sponsorships", (req, res) => {
 });
 
 // Publieks voting counter add
-app.post("/api/publieksvotes", (req, res) => {
+app.post("/api/publieksvotes/:project_id", (req, res) => {
+	const projectID = req.params.project_id;
+
 	createSshTunnelAndConnection((err, connection) => {
 		if (err) {
 			console.error("SSH/DB connection failed:", err);
 			return res.status(500).json({ message: "Database connection error" });
 		}
 
-		const updateQuery = `UPDATE publieks_votes SET vote_count = vote_count + 1 WHERE project_id = 1`;
-		const selectQuery = `SELECT vote_count FROM publieks_votes WHERE project_id = 1`;
+		const selectQuery = `SELECT vote_count FROM publieks_votes WHERE project_id = ?`;
+		const insertQuery = `INSERT INTO publieks_votes (project_id, vote_count) VALUES (?, 1)`;
+		const updateQuery = `UPDATE publieks_votes SET vote_count = vote_count + 1 WHERE project_id = ?`;
 
-		connection.query(updateQuery, (err) => {
+		connection.query(selectQuery, [projectID], (err, results) => {
 			if (err) {
 				connection.end();
-				console.error("Vote increment error:", err);
-				return res.status(500).json({ message: "Failed to increment vote count" });
+				console.error("Select error:", err);
+				return res.status(500).json({ message: "Database error during select" });
 			}
 
-			connection.query(selectQuery, (err, results) => {
-				connection.end();
-
-				if (err) {
-					console.error("Vote fetch error:", err);
-					return res.status(500).json({ message: "Failed to fetch vote count" });
-				}
-
-					if (results.length === 0) {
-						return res.status(404).json({ message: `No vote count found for project_id ${projectId}` });
+			if (results.length > 0) {
+				connection.query(updateQuery, [projectID], (err) => {
+					if (err) {
+						connection.end();
+						console.error("Update error:", err);
+						return res.status(500).json({ message: "Failed to update vote count" });
 					}
 
-				return res.status(200).json({
-					message: "Vote counted",
-					vote_count: results[0].vote_count
+					connection.query(selectQuery, [projectID], (err, updatedResults) => {
+						connection.end();
+
+						if (err) {
+							return res.status(500).json({ message: "Failed to fetch updated vote count" });
+						}
+
+						return res.status(200).json({
+							message: "Vote counted",
+							vote_count: updatedResults[0].vote_count
+						});
+					});
 				});
-			});
+			} else {
+				connection.query(insertQuery, [projectID], (err) => {
+					if (err) {
+						connection.end();
+						console.error("Insert error:", err);
+						return res.status(500).json({ message: "Failed to insert vote" });
+					}
+
+					connection.end();
+					return res.status(200).json({
+						message: "Vote counted",
+						vote_count: 1
+					});
+				});
+			}
 		});
 	});
 });
+
+app.get("/api/publieksvotes", (req, res) => {
+	createSshTunnelAndConnection((err, connection) => {
+		if (err) {
+			console.error("SSH/DB connection failed:", err);
+			return res.status(500).json({ message: "Database connection error" });
+		}
+
+		const query = `
+			SELECT p.id, p.name, COALESCE(v.vote_count, 0) AS vote_count
+			FROM projects p
+			LEFT JOIN publieks_votes v ON p.id = v.project_id
+			ORDER BY vote_count DESC
+		`;
+
+		connection.query(query, (err, results) => {
+			connection.end();
+
+			if (err) {
+				console.error("Query error:", err);
+				return res.status(500).json({ message: "Failed to fetch vote counts" });
+			}
+
+			res.status(200).json(results);
+		});
+	});
+});
+
+
+
 
 // Get publieks votes
 app.get("/api/publieksvotes/:project_id", (req, res) => {
@@ -988,6 +1040,91 @@ app.get('/api/user-status', (req, res) => {
     });
   });
 });
+
+
+const generateInviteEmail = (name) => `
+<div style="font-family: 'Arial', sans-serif; background-color: #ffffff; color: #333; padding: 40px; max-width: 600px; margin: auto; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
+  <img src="https://shiftfestival.be/emailBanners/bannerMail.png" alt="Shift Logo" style="width: 100%; margin-bottom: 30px" />
+  <p style="font-size: 16px; line-height: 1.6">
+    Hallo ${name},<br /><br />
+    Vrijdag verwelkomen we je op <strong>Shift Festival 2025</strong>! Fijn dat je erbij zal zijn.<br /><br />
+    Tijdens dit event krijg je de kans om het werk van onze studenten te ontdekken in een <strong>interactieve expo</strong>...
+    <br /><br />
+    <strong>Let op:</strong> Wil je mee genieten van de barbecue? Bestel dan <strong>voor dinsdag 17 juni om 23u</strong> via dit formulier:
+    <a href="https://docs.google.com/forms/d/e/1FAIpQLSeSnz7T9usjVBx98n_nTk1ABOwMQ0pOhNPbFp-b2gPp9HY4lQ/viewform" target="_blank">Bestel hier je BBQ</a><br /><br />
+    Alle informatie vind je op <a target="_blank" href="https://shiftfestival.be/">https://shiftfestival.be/</a>.
+  </p>
+
+  <h2 style="color: #000; font-size: 20px; margin-top: 30px; font-weight: bold">Praktische info:</h2>
+  <p style="font-size: 16px; line-height: 1.6; color: #000">
+    <strong>Datum: Vrijdag 20 juni 2025</strong><br />
+    <strong>Locatie:</strong> <a href="https://maps.app.goo.gl/tQqbCeLRXPSfydr18" target="_blank"><strong>Campus Kaai – Nijverheidskaai 170, 1070 Anderlecht</strong></a><br />
+    <strong>Tijd: 17:00 - 21:00 uur</strong><br />
+  </p>
+
+  <div style="margin: 30px 0; text-align: center">
+    <a target="_blank" href="https://shiftfestival.be/shift-festival-2025.ics" style="background-color: #ef4478; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin: 5px; display: inline-block; font-weight: bold;">Voeg toe aan agenda</a>
+    <a target="_blank" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Shift+Festival+2025&dates=20250621T150000Z/20250621T190000Z&details=Shift+Festival+met+expo,+workshops+en+award-uitreiking&location=Erasmushogeschool+Brussel,+Nijverheidskaai+170,+1070+Anderlecht" style="background-color: #5269bc; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin: 5px; display: inline-block; font-weight: bold;">Voeg toe aan Google Calendar</a>
+  </div>
+
+  <p style="font-size: 16px; line-height: 1.6">
+    We kijken ernaar uit om je vrijdag te zien op <strong>Shift</strong>!
+  </p>
+  <p style="font-size: 14px; line-height: 1.6; color: #666">
+    Met vriendelijke groeten,<br />
+    Het Shift-team<br />
+    Erasmushogeschool Brussel – Multimedia & Creatieve Technologie
+  </p>
+  <img src="https://shiftfestival.be/emailBanners/footerMail.png" alt="Shift Logo" style="width: 100%; margin-bottom: 30px" />
+</div>
+`;
+
+app.post("/api/maillist/send-invite-emails", async (req, res) => {
+	createSshTunnelAndConnection((err, connection) => {
+		if (err) {
+			console.error("SSH/DB connection failed:", err);
+			return res.status(500).json({ message: "Database connection error" });
+		}
+
+		const selectQuery = `
+			SELECT first_name, last_name, email 
+			FROM event_registrations 
+			WHERE email = 'michiel.janssen@student.ehb.be'
+		`;
+
+
+		connection.query(selectQuery, async (err, results) => {
+			connection.end();
+
+			if (err) {
+				console.error("Error querying database:", err);
+				return res.status(500).json({ message: "Sorry, something went wrong" });
+			}
+
+			// Send emails one by one
+			for (const { first_name, email } of results) {
+				const name = first_name || "Shift-bezoeker";
+
+				const htmlMessage = generateInviteEmail(name);
+
+				try {
+					await transporter.sendMail({
+						from: '"Shift Festival" <info@shiftfestival.be>',
+						to: email,
+						subject: "Welkom op Shift Festival 2025!",
+						html: htmlMessage
+					});
+					console.log(`📧 Uitnodiging verstuurd naar: ${email}`);
+				} catch (err) {
+					console.error(`❌ Fout bij verzenden naar ${email}:`, err);
+				}
+			}
+
+			res.status(200).json({ message: "Alle e-mails zijn verzonden." });
+		});
+	});
+});
+
 
 // Start server
 app.listen(3000, () => {
