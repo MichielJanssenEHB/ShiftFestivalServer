@@ -604,13 +604,19 @@ app.get('/api/projects', (req, res) => {
     });
   });
 });
-app.get('/api/projects/:creator_name', (req, res) => {
-  const creator = req.params.creator_name.replace(/_/g, ' ').trim();
-  const searchValue = `%${creator}%`;
 
-  if (!creator) {
+app.get('/api/projects/:creator_name', (req, res) => {
+  const rawCreator = req.params.creator_name.trim();
+
+  if (!rawCreator) {
     return res.status(400).json({ message: "Missing creator name" });
   }
+
+  const creatorFormatted = rawCreator
+    .replace(/[_]/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/\s+/g, ' ')
+    .trim();
 
   createSshTunnelAndConnection((err, connection) => {
     if (err) {
@@ -631,11 +637,11 @@ app.get('/api/projects/:creator_name', (req, res) => {
         category,
         room
       FROM projects
-      WHERE LOWER(creator_name) LIKE LOWER(?)
-      ORDER BY name;
+      WHERE creator_name = ?
+      LIMIT 1;
     `;
 
-    connection.query(query, [searchValue], (err, results) => {
+    connection.query(query, [creatorFormatted], (err, results) => {
       connection.end();
 
       if (err) {
