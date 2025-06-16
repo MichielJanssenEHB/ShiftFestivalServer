@@ -759,128 +759,128 @@ app.get("/api/maillist/sponsorships", (req, res) => {
 	});
 });
 
-// Publieks voting counter add
-app.post("/api/publieksvotes/:project_id", (req, res) => {
-	const projectID = req.params.project_id;
+// // Publieks voting counter add
+// app.post("/api/publieksvotes/:project_id", (req, res) => {
+// 	const projectID = req.params.project_id;
 
-	createSshTunnelAndConnection((err, connection) => {
-		if (err) {
-			console.error("SSH/DB connection failed:", err);
-			return res.status(500).json({ message: "Database connection error" });
-		}
+// 	createSshTunnelAndConnection((err, connection) => {
+// 		if (err) {
+// 			console.error("SSH/DB connection failed:", err);
+// 			return res.status(500).json({ message: "Database connection error" });
+// 		}
 
-		const selectQuery = `SELECT vote_count FROM publieks_votes WHERE project_id = ?`;
-		const insertQuery = `INSERT INTO publieks_votes (project_id, vote_count) VALUES (?, 1)`;
-		const updateQuery = `UPDATE publieks_votes SET vote_count = vote_count + 1 WHERE project_id = ?`;
+// 		const selectQuery = `SELECT vote_count FROM publieks_votes WHERE project_id = ?`;
+// 		const insertQuery = `INSERT INTO publieks_votes (project_id, vote_count) VALUES (?, 1)`;
+// 		const updateQuery = `UPDATE publieks_votes SET vote_count = vote_count + 1 WHERE project_id = ?`;
 
-		connection.query(selectQuery, [projectID], (err, results) => {
-			if (err) {
-				connection.end();
-				console.error("Select error:", err);
-				return res.status(500).json({ message: "Database error during select" });
-			}
+// 		connection.query(selectQuery, [projectID], (err, results) => {
+// 			if (err) {
+// 				connection.end();
+// 				console.error("Select error:", err);
+// 				return res.status(500).json({ message: "Database error during select" });
+// 			}
 
-			if (results.length > 0) {
-				connection.query(updateQuery, [projectID], (err) => {
-					if (err) {
-						connection.end();
-						console.error("Update error:", err);
-						return res.status(500).json({ message: "Failed to update vote count" });
-					}
+// 			if (results.length > 0) {
+// 				connection.query(updateQuery, [projectID], (err) => {
+// 					if (err) {
+// 						connection.end();
+// 						console.error("Update error:", err);
+// 						return res.status(500).json({ message: "Failed to update vote count" });
+// 					}
 
-					connection.query(selectQuery, [projectID], (err, updatedResults) => {
-						connection.end();
+// 					connection.query(selectQuery, [projectID], (err, updatedResults) => {
+// 						connection.end();
 
-						if (err) {
-							return res.status(500).json({ message: "Failed to fetch updated vote count" });
-						}
+// 						if (err) {
+// 							return res.status(500).json({ message: "Failed to fetch updated vote count" });
+// 						}
 
-						return res.status(200).json({
-							message: "Vote counted",
-							vote_count: updatedResults[0].vote_count
-						});
-					});
-				});
-			} else {
-				connection.query(insertQuery, [projectID], (err) => {
-					if (err) {
-						connection.end();
-						console.error("Insert error:", err);
-						return res.status(500).json({ message: "Failed to insert vote" });
-					}
+// 						return res.status(200).json({
+// 							message: "Vote counted",
+// 							vote_count: updatedResults[0].vote_count
+// 						});
+// 					});
+// 				});
+// 			} else {
+// 				connection.query(insertQuery, [projectID], (err) => {
+// 					if (err) {
+// 						connection.end();
+// 						console.error("Insert error:", err);
+// 						return res.status(500).json({ message: "Failed to insert vote" });
+// 					}
 
-					connection.end();
-					return res.status(200).json({
-						message: "Vote counted",
-						vote_count: 1
-					});
-				});
-			}
-		});
-	});
-});
+// 					connection.end();
+// 					return res.status(200).json({
+// 						message: "Vote counted",
+// 						vote_count: 1
+// 					});
+// 				});
+// 			}
+// 		});
+// 	});
+// });
 
-app.get("/api/publieksvotes", (req, res) => {
-	createSshTunnelAndConnection((err, connection) => {
-		if (err) {
-			console.error("SSH/DB connection failed:", err);
-			return res.status(500).json({ message: "Database connection error" });
-		}
+// app.get("/api/publieksvotes", (req, res) => {
+// 	createSshTunnelAndConnection((err, connection) => {
+// 		if (err) {
+// 			console.error("SSH/DB connection failed:", err);
+// 			return res.status(500).json({ message: "Database connection error" });
+// 		}
 
-		const query = `
-			SELECT p.id, p.name, COALESCE(v.vote_count, 0) AS vote_count
-			FROM projects p
-			LEFT JOIN publieks_votes v ON p.id = v.project_id
-			ORDER BY vote_count DESC
-		`;
+// 		const query = `
+// 			SELECT p.id, p.name, COALESCE(v.vote_count, 0) AS vote_count
+// 			FROM projects p
+// 			LEFT JOIN publieks_votes v ON p.id = v.project_id
+// 			ORDER BY vote_count DESC
+// 		`;
 
-		connection.query(query, (err, results) => {
-			connection.end();
+// 		connection.query(query, (err, results) => {
+// 			connection.end();
 
-			if (err) {
-				console.error("Query error:", err);
-				return res.status(500).json({ message: "Failed to fetch vote counts" });
-			}
+// 			if (err) {
+// 				console.error("Query error:", err);
+// 				return res.status(500).json({ message: "Failed to fetch vote counts" });
+// 			}
 
-			res.status(200).json(results);
-		});
-	});
-});
-
-
+// 			res.status(200).json(results);
+// 		});
+// 	});
+// });
 
 
-// Get publieks votes
-app.get("/api/publieksvotes/:project_id", (req, res) => {
-	const projectId = req.params.project_id;
 
-	createSshTunnelAndConnection((err, connection) => {
-		if (err) {
-			console.error("SSH/DB connection failed:", err);
-			return res.status(500).json({ message: "Database connection error" });
-		}
 
-		const selectQuery = `SELECT vote_count FROM publieks_votes WHERE project_id = ?`;
+// // Get publieks votes
+// app.get("/api/publieksvotes/:project_id", (req, res) => {
+// 	const projectId = req.params.project_id;
 
-		connection.query(selectQuery, [projectId], (err, results) => {
-			connection.end();
+// 	createSshTunnelAndConnection((err, connection) => {
+// 		if (err) {
+// 			console.error("SSH/DB connection failed:", err);
+// 			return res.status(500).json({ message: "Database connection error" });
+// 		}
 
-			if (err) {
-				console.error("Vote fetch error:", err);
-				return res.status(500).json({ message: "Failed to fetch vote count" });
-			}
+// 		const selectQuery = `SELECT vote_count FROM publieks_votes WHERE project_id = ?`;
 
-			if (results.length === 0) {
-				return res.status(404).json({ message: `No votes found for project_id ${projectId}` });
-			}
+// 		connection.query(selectQuery, [projectId], (err, results) => {
+// 			connection.end();
 
-			return res.status(200).json({
-				project_id: projectId,
-				vote_count: results[0].vote_count,
-			});
-		});
-	});
-});
+// 			if (err) {
+// 				console.error("Vote fetch error:", err);
+// 				return res.status(500).json({ message: "Failed to fetch vote count" });
+// 			}
+
+// 			if (results.length === 0) {
+// 				return res.status(404).json({ message: `No votes found for project_id ${projectId}` });
+// 			}
+
+// 			return res.status(200).json({
+// 				project_id: projectId,
+// 				vote_count: results[0].vote_count,
+// 			});
+// 		});
+// 	});
+// });
 
 // Register voter
 app.post("/api/register-voter", (req, res) => {
