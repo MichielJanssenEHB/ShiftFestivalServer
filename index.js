@@ -577,6 +577,7 @@ app.get('/api/projects', (req, res) => {
 
     const query = `
       SELECT
+	  	id,
         name,
         creator_name,
         description,
