@@ -241,7 +241,7 @@ const sendEmailWithToken = async (to, token) => {
 		const info = await transporter.sendMail({
 			from: '"Shift Festival" <info@shiftfestival.be>',
 			to,
-			subject: "Je stem-token voor Shift Festival",
+			subject: "Je token om eindprojecten MCT te nomineren op shiftfestival.be",
 			text: `Bedankt voor je deelname! Gebruik deze unieke link om te stemmen: ${token}`,
 			html: `
 				<div
@@ -262,57 +262,26 @@ const sendEmailWithToken = async (to, token) => {
 						style="width: 100%; margin-bottom: 30px"
 					/>
 					<p style="font-size: 16px; line-height: 1.6">
-						Hallo,<br />
-						Wat fijn dat je erbij was op <strong>Shift</strong>! We hopen dat je genoten
-						hebt van alle inspirerende projecten, workshops en de unieke sfeer.
+						Hi,,<br />
+						Fijn dat je je aangemeld hebt om je favoriete eindprojecten MTC te nomineren voor de Golden Mike awards.
 					</p>
-					<!-- Token Section -->
 					<h2 style="color: rgb(0, 0, 0); font-size: 20px; margin-top: 30px">
-						Jouw stem-token:
+						Hoe werkt het? Niet moeilijk! 
 					</h2>
 					<p
-						style="
-							font-size: 20px;
-							font-weight: bold;
-							background: #f1f1f1;
-							padding: 14px;
-							border-radius: 8px;
-							display: inline-block;
-							margin-top: 10px;
-						"
 					>
-						${token}
+					<li style="width: 100%; margin-bottom: 10px">Klik op onderstaande link ${token}</li>
+                    <li style="width: 100%; margin-bottom: 10px">Je komt terecht op de pagina met alle projecten</li>
+                    <li style="width: 100%; margin-bottom: 10px">Bekijk de pagina van het project dat je wilt nomineren en klik rechtsboven op de knop ‘Nomineer dit project’.</li>
+                    <li style="width: 100%; margin-bottom: 10px">Er verschijnt een overlay waarin je kunt aangeven voor welke awards dit project in aanmerking komt (je kunt één of meerdere aanduiden).</li>
+                    <li style="width: 100%; margin-bottom: 10px">Nomineer in totaal maximaal drie projecten per awardcategorie (minder mag ook).</li>
+                    <li style="width: 100%; margin-bottom: 10px">In de navigatie vind je op elk moment een link naar je persoonlijke dashboard, waar je een overzicht hebt van al je genomineerde projecten per awardcategorie.</li>
+                    <li style="width: 100%; margin-bottom: 10px">Je kunt tot en met <span style="font-weight: 700;">donderdag 19/06</span> 16u nog wijzigingen of aanvullingen doen in je nominaties.</li>
+                    <li style="width: 100%; margin-bottom: 10px">Op <span style="font-weight: 700;">donderdag 19/06 om 16u</span> worden alle nominaties opgeteld en bekijkt een selecte jury wie de winnaars zijn per awardcategorie.</li>
 					</p>
 					<p style="font-size: 16px; line-height: 1.6; margin-top: 20px">
-						Gebruik deze token om te stemmen via de stempagina of op het event zelf.
-					</p>
-				
-					<div style="margin: 30px 0; text-align: center">
-						<a
-							target="_blank"
-							href="${token}"
-							style="
-								background-color: #e62474;
-								color: #fff;
-								padding: 14px 28px;
-								text-decoration: none;
-								border-radius: 8px;
-								font-weight: bold;
-							"
-						>
-							Breng je stem uit</a
-						>
-					</div>
-				
-					<p style="font-size: 16px; line-height: 1.6">
-						Nogmaals bedankt voor je komst. Tot ziens op een volgende editie van
-						<strong>Shift</strong>!
-					</p>
-					<p style="font-size: 14px; line-height: 1.6; color: #666">
-						Met vriendelijke groeten, <br />
-						Het Shift-team  <br />
-						Erasmushogeschool Brussel – Multimedia & Creatieve Technologie
-					</p>
+						Elke stem is belangrijk en waardevol voor de afstuderende MCT-studenten. Bedankt voor je deelname!
+					</p>    
 				
 					<img
 						src="https://shiftfestival.be/emailBanners/footerMail.png"
