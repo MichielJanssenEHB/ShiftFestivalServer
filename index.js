@@ -48,8 +48,8 @@ const tunnelConfig = {
 	host: process.env.DB_SSH_HOST,
 	port: 22,
 	username: process.env.DB_SSH_USER,
-	privateKey: process.env.SSH_PK.replace(/\\n/g, '\n'),
-	//privateKey: fs.readFileSync(process.env.SSH_PK_PATH)
+	//privateKey: process.env.SSH_PK.replace(/\\n/g, '\n'),
+	privateKey: fs.readFileSync(process.env.SSH_PK_PATH)
 };
 
 const forwardConfig = {
@@ -475,7 +475,6 @@ app.post("/api/vote", (req, res) => {
 						return;
 					}
 
-					// Count how many votes user already cast for this award
 					const countQuery = `
 						SELECT COUNT(*) AS vote_count
 						FROM votes
@@ -497,7 +496,6 @@ app.post("/api/vote", (req, res) => {
 							return;
 						}
 
-						// Insert the vote
 						const insertQuery = `
 							INSERT INTO votes (voter_id, award_id, project_id)
 							VALUES (?, ?, ?)
@@ -534,7 +532,8 @@ app.delete("/api/vote", (req, res) => {
 			return res.status(500).json({ message: "Database connection error" });
 		}
 
-		const { token, award_id, project_id } = req.body;
+		const token = req.cookies.token;
+		const { award_id, project_id } = req.body;
 
 		if (!token || !award_id || !project_id) {
 			connection.end();
@@ -612,11 +611,23 @@ app.get('/api/projects/:creator_name', (req, res) => {
     return res.status(400).json({ message: "Missing creator name" });
   }
 
-  const creatorFormatted = rawCreator
-    .replace(/[_]/g, ' ')
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/\s+/g, ' ')
-    .trim();
+    let primaryNamePart = rawCreator.split('&')[0].trim();
+
+// Ugly fix: add spaces around '-' ONLY if dash is after position 6
+let dashIndex = primaryNamePart.indexOf('-');
+if (dashIndex > 6) {
+  // Replace only that dash with ' - '
+  primaryNamePart = 
+    primaryNamePart.slice(0, dashIndex) + ' - ' + primaryNamePart.slice(dashIndex + 1);
+}
+
+const creatorFormatted = primaryNamePart
+  .replace(/[_]/g, ' ')
+  .replace(/([a-z])([A-Z])/g, '$1 $2')
+  .replace(/\s+/g, ' ')
+  .trim();
+
+	console.log("Name " + creatorFormatted);
 
   createSshTunnelAndConnection((err, connection) => {
     if (err) {
@@ -626,6 +637,7 @@ app.get('/api/projects/:creator_name', (req, res) => {
 
     const query = `
       SELECT
+	  	id,
         name,
         creator_name,
         description,
@@ -891,13 +903,12 @@ app.post("/api/register-voter", (req, res) => {
 		}
 
 		const { email } = req.body;
-		//const emailRegex = /^[a-zA-Z0-9._%+-]+@ehb\.be$/;
-		// const emailRegex = /^[a-zA-Z0-9._%+-]+@student\.ehb\.be$/;
+		const emailRegex = /^[a-zA-Z0-9._%+-]+@ehb\.be$/;
 
-		// if (!email || !emailRegex.test(email)) {
-		// 	connection.end();
-		// 	return res.status(400).json({ message: "A valid @ehb.be email is required" });
-		// }
+		if (!email || !emailRegex.test(email)) {
+			connection.end();
+			return res.status(400).json({ message: "A valid @ehb.be email is required" });
+		}
 
 		const checkQuery = 'SELECT token FROM voters WHERE email = ?';
 
