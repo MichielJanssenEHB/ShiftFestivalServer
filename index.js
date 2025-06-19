@@ -301,6 +301,12 @@ setInterval(() => {
   console.log("Backend: showVotingPage =", showVotingPage);
 }, 10000);
 
+app.post('/api/toggleVotingPage', (req, res) => {
+  showVotingPage = !showVotingPage;
+  console.log('Boolean toggled. New value:', showVotingPage);
+  res.json({ success: true, showVotingPage });
+});
+
 app.get('/api/showVotingPage', (req, res) => {
   res.json({ showVotingPage });
 });
