@@ -27,15 +27,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// app.use((req, res, next) => {
-//   res.setHeader(
-//     "Content-Security-Policy",
-//     "default-src 'self'; font-src 'self' https://fonts.gstatic.com; style-src 'self' https://fonts.googleapis.com;"
-//   );
-//   next();
-// });
-
-// MySQL & SSH Config
 const dbConfig = {
 	host: process.env.DB_HOST,
 	user: process.env.DB_USER,
@@ -59,7 +50,6 @@ const forwardConfig = {
 	dstPort: dbConfig.port
 };
 
-// Dynamic SSH Tunnel and MySQL Connection (per request)
 function createSshTunnelAndConnection(callback) {
 	const ssh = new Client();
 
@@ -302,6 +292,19 @@ const sendEmailWithToken = async (to, token) => {
 app.get("/api", (req, res) => {
 	res.json({ fruits: ["apple", "banana", "grape"] });
 });
+
+// ===========================================
+let showVotingPage = false;
+
+setInterval(() => {
+  showVotingPage = !showVotingPage;
+  console.log("Backend: showVotingPage =", showVotingPage);
+}, 10000);
+
+app.get('/api/showVotingPage', (req, res) => {
+  res.json({ showVotingPage });
+});
+// ===========================================
 
 // Form submission route
 app.post("/api/submit-register-form", (req, res) => {
