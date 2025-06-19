@@ -296,11 +296,6 @@ app.get("/api", (req, res) => {
 // ===========================================
 let showVotingPage = false;
 
-setInterval(() => {
-  showVotingPage = !showVotingPage;
-  console.log("Backend: showVotingPage =", showVotingPage);
-}, 10000);
-
 app.post('/api/toggleVotingPage', (req, res) => {
   showVotingPage = !showVotingPage;
   console.log('Boolean toggled. New value:', showVotingPage);
@@ -592,6 +587,7 @@ app.get('/api/projects/:creator_name', (req, res) => {
 
     let primaryNamePart = rawCreator.split('&')[0].trim();
 
+
 // Ugly fix: add spaces around '-' ONLY if dash is after position 6
 let dashIndex = primaryNamePart.indexOf('-');
 if (dashIndex > 6) {
@@ -599,6 +595,8 @@ if (dashIndex > 6) {
   primaryNamePart = 
     primaryNamePart.slice(0, dashIndex) + ' - ' + primaryNamePart.slice(dashIndex + 1);
 }
+
+	console.log("Primary part " + primaryNamePart)
 
 const creatorFormatted = primaryNamePart
   .replace(/[_]/g, ' ')
