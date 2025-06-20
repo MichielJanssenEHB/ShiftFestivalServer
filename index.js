@@ -10,7 +10,7 @@ const fs = require('fs');
 const crypto = require("crypto");
 const cookieParser = require('cookie-parser');
 
-const allowedOrigins = ['https://shiftfestival.be', 'http://localhost:5173'];
+const allowedOrigins = ['https://shiftfestival.be', 'http://localhost:5173' , 'https://multimedia.brussels'];
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -216,6 +216,78 @@ const sendEmail = async (to, name) => {
 						style="width: 100%; margin-bottom: 30px"
 					/>
 				</div>
+				`
+		});
+
+		console.log("✅ E-mail succesvol verzonden naar:", to);
+		console.log("📩 Bericht ID:", info.messageId);
+	} catch (error) {
+		console.error("❌ Fout bij verzenden e-mail:", error);
+	}
+};
+
+const sendEmailOneDay = async (to, name) => {
+	try {
+		const info = await transporter.sendMail({
+			from: '"Shift Festival" <info@shiftfestival.be>',
+			to,
+			subject: `Welkom bij Shift Festival, ${name}!`,
+			text: `Morgen is het zover, Shiftf Festival 2025!`,
+			html: `<div
+    style="
+        font-family: 'Arial', sans-serif;
+        background-color: #ffffff;
+        color: #333;
+        padding: 40px;
+        max-width: 600px;
+        margin: auto;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    "
+>
+    <img
+        src="https://shiftfestival.be/emailBanners/bannerMail.png"
+        alt="Shift Logo"
+        style="width: 100%; margin-bottom: 30px"
+    />
+    <p style="font-size: 16px; line-height: 1.6">
+        Hallo ${name},<br /><br />
+        Morgen verwelkomen we je op <strong>Shift Festival 2025</strong>! Alles
+        staat klaar voor een inspirerende avond vol creativiteit.<br /><br />
+        Kom de eindprojecten van onze studenten ontdekken en maak kennis met hun
+        innovatieve ideeën en toekomstplannen. We sluiten de avond feestelijk af met
+        de prijsuitreiking en een spetterende <strong>VJ-Set</strong>.<br /><br />
+        Alle informatie vind je op
+        <a target="_blank" href="https://shiftfestival.be/"
+            >https://shiftfestival.be/</a
+        >.
+    </p>
+    <h2 style="color: #000; font-size: 20px; margin-top: 30px; font-weight: bold">
+        Praktische info:
+    </h2>
+    <p style="font-size: 16px; line-height: 1.6; color: #000">
+        <strong>Datum: Vrijdag 20 juni 2025</strong><br />
+        <strong>Locatie:</strong>
+        <a href="https://maps.app.goo.gl/tQqbCeLRXPSfydr18" target="_blank"
+            ><strong>Campus Kaai – Nijverheidskaai 170, 1070 Anderlecht</strong></a
+        ><br />
+        <strong>Tijd: 17:00 - 21:00 uur</strong><br />
+    </p>
+ 
+    <p style="font-size: 16px; line-height: 1.6">
+        We kijken ernaar uit je morgen te zien op <strong>Shift</strong>!
+    </p>
+    <p style="font-size: 14px; line-height: 1.6; color: #666">
+        Met vriendelijke groeten,<br />
+        Het Shift-team<br />
+        Erasmushogeschool Brussel – Multimedia & Creatieve Technologie
+    </p>
+    <img
+        src="https://shiftfestival.be/emailBanners/footerMail.png"
+        alt="Shift Logo"
+        style="width: 100%; margin-bottom: 30px"
+    />
+</div>
 				`
 		});
 
@@ -1032,88 +1104,108 @@ app.get('/api/user-status', (req, res) => {
 });
 
 
-const generateInviteEmail = (name) => `
-<div style="font-family: 'Arial', sans-serif; background-color: #ffffff; color: #333; padding: 40px; max-width: 600px; margin: auto; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
-  <img src="https://shiftfestival.be/emailBanners/bannerMail.png" alt="Shift Logo" style="width: 100%; margin-bottom: 30px" />
-  <p style="font-size: 16px; line-height: 1.6">
-    Hallo ${name},<br /><br />
-    Vrijdag verwelkomen we je op <strong>Shift Festival 2025</strong>! Fijn dat je erbij zal zijn.<br /><br />
-    Tijdens dit event krijg je de kans om het werk van onze studenten te ontdekken in een <strong>interactieve expo</strong>...
-    <br /><br />
-    <strong>Let op:</strong> Wil je mee genieten van de barbecue? Bestel dan <strong>voor dinsdag 17 juni om 23u</strong> via dit formulier:
-    <a href="https://docs.google.com/forms/d/e/1FAIpQLSeSnz7T9usjVBx98n_nTk1ABOwMQ0pOhNPbFp-b2gPp9HY4lQ/viewform" target="_blank">Bestel hier je BBQ</a><br /><br />
-    Alle informatie vind je op <a target="_blank" href="https://shiftfestival.be/">https://shiftfestival.be/</a>.
-  </p>
-
-  <h2 style="color: #000; font-size: 20px; margin-top: 30px; font-weight: bold">Praktische info:</h2>
-  <p style="font-size: 16px; line-height: 1.6; color: #000">
-    <strong>Datum: Vrijdag 20 juni 2025</strong><br />
-    <strong>Locatie:</strong> <a href="https://maps.app.goo.gl/tQqbCeLRXPSfydr18" target="_blank"><strong>Campus Kaai – Nijverheidskaai 170, 1070 Anderlecht</strong></a><br />
-    <strong>Tijd: 17:00 - 21:00 uur</strong><br />
-  </p>
-
-  <div style="margin: 30px 0; text-align: center">
-    <a target="_blank" href="https://shiftfestival.be/shift-festival-2025.ics" style="background-color: #ef4478; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin: 5px; display: inline-block; font-weight: bold;">Voeg toe aan agenda</a>
-    <a target="_blank" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Shift+Festival+2025&dates=20250621T150000Z/20250621T190000Z&details=Shift+Festival+met+expo,+workshops+en+award-uitreiking&location=Erasmushogeschool+Brussel,+Nijverheidskaai+170,+1070+Anderlecht" style="background-color: #5269bc; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin: 5px; display: inline-block; font-weight: bold;">Voeg toe aan Google Calendar</a>
-  </div>
-
-  <p style="font-size: 16px; line-height: 1.6">
-    We kijken ernaar uit om je vrijdag te zien op <strong>Shift</strong>!
-  </p>
-  <p style="font-size: 14px; line-height: 1.6; color: #666">
-    Met vriendelijke groeten,<br />
-    Het Shift-team<br />
-    Erasmushogeschool Brussel – Multimedia & Creatieve Technologie
-  </p>
-  <img src="https://shiftfestival.be/emailBanners/footerMail.png" alt="Shift Logo" style="width: 100%; margin-bottom: 30px" />
+const generateInviteEmail = (name) => `<div
+    style="
+        font-family: 'Arial', sans-serif;
+        background-color: #ffffff;
+        color: #333;
+        padding: 40px;
+        max-width: 600px;
+        margin: auto;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    "
+>
+    <img
+        src="https://shiftfestival.be/emailBanners/bannerMail.png"
+        alt="Shift Logo"
+        style="width: 100%; margin-bottom: 30px"
+    />
+    <p style="font-size: 16px; line-height: 1.6">
+        Hallo ${name},<br /><br />
+        Morgen verwelkomen we je op <strong>Shift Festival 2025</strong>! Alles
+        staat klaar voor een inspirerende avond vol creativiteit.<br /><br />
+        Kom de eindprojecten van onze studenten ontdekken en maak kennis met hun
+        innovatieve ideeën en toekomstplannen. We sluiten de avond feestelijk af met
+        de prijsuitreiking en een spetterende <strong>VJ-Set</strong>.<br /><br />
+        Alle informatie vind je op
+        <a target="_blank" href="https://shiftfestival.be/"
+            >https://shiftfestival.be/</a
+        >.
+    </p>
+    <h2 style="color: #000; font-size: 20px; margin-top: 30px; font-weight: bold">
+        Praktische info:
+    </h2>
+    <p style="font-size: 16px; line-height: 1.6; color: #000">
+        <strong>Datum: Vrijdag 20 juni 2025</strong><br />
+        <strong>Locatie:</strong>
+        <a href="https://maps.app.goo.gl/tQqbCeLRXPSfydr18" target="_blank"
+            ><strong>Campus Kaai – Nijverheidskaai 170, 1070 Anderlecht</strong></a
+        ><br />
+        <strong>Tijd: 17:00 - 21:00 uur</strong><br />
+    </p>
+ 
+    <p style="font-size: 16px; line-height: 1.6">
+        We kijken ernaar uit je morgen te zien op <strong>Shift</strong>!
+    </p>
+    <p style="font-size: 14px; line-height: 1.6; color: #666">
+        Met vriendelijke groeten,<br />
+        Het Shift-team<br />
+        Erasmushogeschool Brussel – Multimedia & Creatieve Technologie
+    </p>
+    <img
+        src="https://shiftfestival.be/emailBanners/footerMail.png"
+        alt="Shift Logo"
+        style="width: 100%; margin-bottom: 30px"
+    />
 </div>
-`;
+				`;
 
-app.post("/api/maillist/send-invite-emails", async (req, res) => {
-	createSshTunnelAndConnection((err, connection) => {
-		if (err) {
-			console.error("SSH/DB connection failed:", err);
-			return res.status(500).json({ message: "Database connection error" });
-		}
+// app.post("/api/maillist/send-invite-emails", async (req, res) => {
+// 	createSshTunnelAndConnection((err, connection) => {
+// 		if (err) {
+// 			console.error("SSH/DB connection failed:", err);
+// 			return res.status(500).json({ message: "Database connection error" });
+// 		}
 
-		const selectQuery = `
-		SELECT first_name, last_name, email 
-		FROM event_registrations 
-		WHERE email = 'michiel.janssen@student.ehb.be'
-	`;
+// 		const selectQuery = `
+// 		SELECT first_name, last_name, email 
+// 		FROM event_registrations 
+// 		WHERE wants_event_updates = 1
+// 	`;
 
 
-		connection.query(selectQuery, async (err, results) => {
-			connection.end();
+// 		connection.query(selectQuery, async (err, results) => {
+// 			connection.end();
 
-			if (err) {
-				console.error("Error querying database:", err);
-				return res.status(500).json({ message: "Sorry, something went wrong" });
-			}
+// 			if (err) {
+// 				console.error("Error querying database:", err);
+// 				return res.status(500).json({ message: "Sorry, something went wrong" });
+// 			}
 
-			// Send emails one by one
-			for (const { first_name, email } of results) {
-				const name = first_name || "Shift-bezoeker";
+// 			// Send emails one by one
+// 			for (const { first_name, email } of results) {
+// 				const name = first_name || "Shift-bezoeker";
 
-				const htmlMessage = generateInviteEmail(name);
+// 				const htmlMessage = generateInviteEmail(name);
 
-				try {
-					await transporter.sendMail({
-						from: '"Shift Festival" <info@shiftfestival.be>',
-						to: email,
-						subject: "Welkom op Shift Festival 2025!",
-						html: htmlMessage
-					});
-					console.log(`📧 Uitnodiging verstuurd naar: ${email}`);
-				} catch (err) {
-					console.error(`❌ Fout bij verzenden naar ${email}:`, err);
-				}
-			}
+// 				try {
+// 					await transporter.sendMail({
+// 						from: '"Shift Festival" <info@shiftfestival.be>',
+// 						to: email,
+// 						subject: "Morgen is het zover, Shift Festival 2025!",
+// 						html: htmlMessage
+// 					});
+// 					console.log(`📧 Uitnodiging verstuurd naar: ${email}`);
+// 				} catch (err) {
+// 					console.error(`❌ Fout bij verzenden naar ${email}:`, err);
+// 				}
+// 			}
 
-			res.status(200).json({ message: "Alle e-mails zijn verzonden." });
-		});
-	});
-});
+// 			res.status(200).json({ message: "Alle e-mails zijn verzonden." });
+// 		});
+// 	});
+// });
 
 
 // Start server
