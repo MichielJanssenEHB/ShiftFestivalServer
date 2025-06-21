@@ -1,5 +1,4 @@
 const express = require("express");
-const path = require('path');
 const app = express();
 const mysql = require("mysql2");
 require("dotenv").config();
@@ -10,8 +9,14 @@ const fs = require('fs');
 const crypto = require("crypto");
 const cookieParser = require('cookie-parser');
 
+/*
+	CORS URLs: Add every url here that needs to be allowed by CORS.
+*/
 const allowedOrigins = ['https://shiftfestival.be', 'http://localhost:5173' , 'https://multimedia.brussels'];
 
+/*
+	CORS implementation.
+*/
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
@@ -23,10 +28,17 @@ app.use(cors({
   credentials: true,
 }));
 
+/*
+	Use of express json and cookieParses to read cookies
+*/
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+
+/*
+	Database configuration: You need a SSH tunnel to connect to the Combell database. Just make an .env in the root folder for testing and in combell under NodeJS you add these variables aswell for production.
+*/
 const dbConfig = {
 	host: process.env.DB_HOST,
 	user: process.env.DB_USER,
@@ -39,6 +51,13 @@ const tunnelConfig = {
 	host: process.env.DB_SSH_HOST,
 	port: 22,
 	username: process.env.DB_SSH_USER,
+	/*
+		Make key pair using PuttyGEN. Then save public key in combell under FTP & SSH -> SSH. 
+		The private key you upload under NodeJS -> environment variables (just paste it as string, the regex will put it in the right format). 
+		For testing have it somewhere secure (DONT PUSH IT TO GITHUB) and set your path in the .env file. 
+		Now the first line here is for production. So uncomment this when trying to push for production.
+		Uncomment second line and comment first if you just wanna test on localhost.
+	*/
 	privateKey: process.env.SSH_PK.replace(/\\n/g, '\n'),
 	//privateKey: fs.readFileSync(process.env.SSH_PK_PATH)
 };
@@ -50,6 +69,9 @@ const forwardConfig = {
 	dstPort: dbConfig.port
 };
 
+/*
+	SSH tunnel logic with prevention that the SSH connection doesn't get lost when idling.
+*/
 function createSshTunnelAndConnection(callback) {
 	const ssh = new Client();
 
@@ -91,7 +113,9 @@ function createSshTunnelAndConnection(callback) {
 	});
 }
 
-// Email Transport
+/*
+	Email transporter to send automated mails
+*/
 const transporter = nodemailer.createTransport({
 	host: "smtp-auth.mailprotect.be",
 	port: 465,
@@ -103,6 +127,9 @@ const transporter = nodemailer.createTransport({
 	logger: true,
 });
 
+/*
+	Example of a mail
+*/
 const sendEmail = async (to, name) => {
 	try {
 		const info = await transporter.sendMail({
@@ -226,6 +253,9 @@ const sendEmail = async (to, name) => {
 	}
 };
 
+/*
+	Another example of a mail
+*/
 const sendEmailOneDay = async (to, name) => {
 	try {
 		const info = await transporter.sendMail({
@@ -298,6 +328,9 @@ const sendEmailOneDay = async (to, name) => {
 	}
 };
 
+/*
+	Mail send after an EHB user registers to vote.
+*/
 const sendEmailWithToken = async (to, token) => {
 	try {
 		const info = await transporter.sendMail({
@@ -360,12 +393,17 @@ const sendEmailWithToken = async (to, token) => {
 	}
 };
 
-// Test API route
+/*
+	Route to test if you can talk with the backend
+*/
 app.get("/api", (req, res) => {
 	res.json({ fruits: ["apple", "banana", "grape"] });
 });
 
 // ===========================================
+/*
+	Logic for the physical voting machine.
+*/
 let showVotingPage = false;
 
 app.post('/api/toggleVotingPage', (req, res) => {
@@ -379,7 +417,9 @@ app.get('/api/showVotingPage', (req, res) => {
 });
 // ===========================================
 
-// Form submission route
+/*
+	'Inscchrijvingen' logic.
+*/
 app.post("/api/submit-register-form", (req, res) => {
 	createSshTunnelAndConnection((err, connection) => {
 		if (err) {
@@ -444,6 +484,9 @@ app.post("/api/submit-register-form", (req, res) => {
 	});
 });
 
+/*
+	A counter to check the number of attendees.
+*/
 app.get("/api/counter", (req, res) => {
 	createSshTunnelAndConnection((err, connection) => {
 		if (err) {
@@ -466,7 +509,9 @@ app.get("/api/counter", (req, res) => {
 	});
 });
 
-// Vote
+/*
+	Voting logic for the teachers.
+*/
 app.post("/api/vote", (req, res) => {
 	createSshTunnelAndConnection((err, connection) => {
 		if (err) {
@@ -501,7 +546,6 @@ app.post("/api/vote", (req, res) => {
 			let pending = award_ids.length;
 
 			award_ids.forEach((award_id) => {
-				// Check if already voted for this project in this award
 				const checkVoteQuery = `
 					SELECT id FROM votes
 					WHERE voter_id = ? AND award_id = ? AND project_id = ?
@@ -570,7 +614,9 @@ app.post("/api/vote", (req, res) => {
 });
 
 
-// Vote
+/*
+	Teacher voting delete logic.
+*/
 app.delete("/api/vote", (req, res) => {
 	createSshTunnelAndConnection((err, connection) => {
 		if (err) {
@@ -613,6 +659,9 @@ app.delete("/api/vote", (req, res) => {
 	});
 });
 
+/*
+	Fetch all the 3th years projects.
+*/
 app.get('/api/projects', (req, res) => {
   createSshTunnelAndConnection((err, connection) => {
     if (err) {
@@ -651,33 +700,40 @@ app.get('/api/projects', (req, res) => {
   });
 });
 
+/*
+	Get the project of 1 specific student
+*/
 app.get('/api/projects/:creator_name', (req, res) => {
-  const rawCreator = req.params.creator_name.trim();
+	const rawCreator = req.params.creator_name.trim();
 
-  if (!rawCreator) {
-    return res.status(400).json({ message: "Missing creator name" });
-  }
+	if (!rawCreator) {
+		return res.status(400).json({ message: "Missing creator name" });
+	}
 
-    let primaryNamePart = rawCreator.split('&')[0].trim();
+  	/*
+  		This regex logic is here because the urls where not correctly set for QR codes. This code checks for - characters to split 2 people but 1 person had a - character in its firstname so to handle this I made this regex function.
+	*/
+	let primaryNamePart = rawCreator.split('&')[0].trim();
 
 
-// Ugly fix: add spaces around '-' ONLY if dash is after position 6
-let dashIndex = primaryNamePart.indexOf('-');
-if (dashIndex > 6) {
-  // Replace only that dash with ' - '
-  primaryNamePart = 
-    primaryNamePart.slice(0, dashIndex) + ' - ' + primaryNamePart.slice(dashIndex + 1);
-}
+	let dashIndex = primaryNamePart.indexOf('-');
+	if (dashIndex > 6) {
+	primaryNamePart = 
+		primaryNamePart.slice(0, dashIndex) + ' - ' + primaryNamePart.slice(dashIndex + 1);
+	}
 
 	console.log("Primary part " + primaryNamePart)
 
-const creatorFormatted = primaryNamePart
-  .replace(/[_]/g, ' ')
-  .replace(/([a-z])([A-Z])/g, '$1 $2')
-  .replace(/\s+/g, ' ')
-  .trim();
+	const creatorFormatted = primaryNamePart
+	.replace(/[_]/g, ' ')
+	.replace(/([a-z])([A-Z])/g, '$1 $2')
+	.replace(/\s+/g, ' ')
+	.trim();
 
 	console.log("Name " + creatorFormatted);
+	/*
+		Regex stops here
+	*/
 
   createSshTunnelAndConnection((err, connection) => {
     if (err) {
@@ -718,8 +774,9 @@ const creatorFormatted = primaryNamePart
 });
 
 
-
-// Get projects per category per voter
+/*
+	Get projects per category and per voter
+*/
 app.get("/api/votes", (req, res) => {
 	createSshTunnelAndConnection((err, connection) => {
 		if (err) {
@@ -774,6 +831,10 @@ app.get("/api/votes", (req, res) => {
 	});
 });
 
+
+/*
+	Json list to see who wants update emails for the event (U use this to send automated mails in the future to these people). 
+*/
 app.get("/api/maillist/wants-updates", (req, res) => {
 	createSshTunnelAndConnection((err, connection) => {
 		if (err) {
@@ -798,6 +859,9 @@ app.get("/api/maillist/wants-updates", (req, res) => {
 	});
 });
 
+/*
+	List of all the companies that wants to sponsor (if there are make sure Mike knows).
+*/
 app.get("/api/maillist/sponsorships", (req, res) => {
 	createSshTunnelAndConnection((err, connection) => {
 		if (err) {
@@ -822,7 +886,9 @@ app.get("/api/maillist/sponsorships", (req, res) => {
 	});
 });
 
-// Publieks voting counter add
+/*
+	Add a vote to a certain project (used for public voting).
+*/
 app.post("/api/publieksvotes/:project_id", (req, res) => {
 	const projectID = req.params.project_id;
 
@@ -883,6 +949,9 @@ app.post("/api/publieksvotes/:project_id", (req, res) => {
 	});
 });
 
+/*
+	Get a list of the public votes (ranked most to least votes, handy for live show team).
+*/
 app.get("/api/publieksvotes", (req, res) => {
 	createSshTunnelAndConnection((err, connection) => {
 		if (err) {
@@ -911,9 +980,9 @@ app.get("/api/publieksvotes", (req, res) => {
 });
 
 
-
-
-// Get publieks votes
+/*
+	Call if you wanna see how many public votes one project has.
+*/
 app.get("/api/publieksvotes/:project_id", (req, res) => {
 	const projectId = req.params.project_id;
 
@@ -945,7 +1014,9 @@ app.get("/api/publieksvotes/:project_id", (req, res) => {
 	});
 });
 
-// Register voter
+/*
+	Logic to check if its an EHB user and sending them a mail with their unique token.
+*/
 app.post("/api/register-voter", (req, res) => {
 	createSshTunnelAndConnection((err, connection) => {
 		if (err) {
@@ -1003,6 +1074,9 @@ app.post("/api/register-voter", (req, res) => {
 	});
 });
 
+/*
+	Logic to set unique token as a cookie in the users device.
+*/
 app.get('/api/verify-token', (req, res) => {
   const { token } = req.query;
 
@@ -1043,37 +1117,9 @@ app.get('/api/verify-token', (req, res) => {
   });
 });
 
-
-// Validate token OLD
-app.post("/api/validate-token", (req, res) => {
-	const { token } = req.body;
-
-	if (!token) {
-		return res.status(400).json({ message: "❌ Token ontbreekt." });
-	}
-
-	createSshTunnelAndConnection((err, connection) => {
-		if (err) {
-			console.error("SSH/DB connection failed:", err);
-			return res.status(500).json({ message: "❌ Fout bij databaseverbinding." });
-		}
-
-		const sql = `SELECT email FROM voters WHERE token = ? LIMIT 1`;
-
-		connection.query(sql, [token], (err, results) => {
-			connection.end();
-
-			if (err || results.length === 0) {
-				console.error("❌ Ongeldige token.");
-				return res.status(401).json({ message: "❌ Ongeldige of onbekende token." });
-			}
-
-			const email = results[0].email;
-			return res.status(200).json({ message: "✅ Token geldig.", email });
-		});
-	});
-});
-
+/*
+	Logic to check if the user has a valid token to vote.
+*/
 app.get('/api/user-status', (req, res) => {
   const token = req.cookies.token;
 
@@ -1097,14 +1143,17 @@ app.get('/api/user-status', (req, res) => {
         return res.json({ verified: false });
       }
 
-      // Token is valid
       return res.json({ verified: true, email: results[0].email });
     });
   });
 });
 
 
-const generateInviteEmail = (name) => `<div
+/*
+	Another mail example
+*/
+const generateLastEmail = (name) => `<div
+<div
     style="
         font-family: 'Arial', sans-serif;
         background-color: #ffffff;
@@ -1123,11 +1172,11 @@ const generateInviteEmail = (name) => `<div
     />
     <p style="font-size: 16px; line-height: 1.6">
         Hallo ${name},<br /><br />
-        Morgen verwelkomen we je op <strong>Shift Festival 2025</strong>! Alles
-        staat klaar voor een inspirerende avond vol creativiteit.<br /><br />
-        Kom de eindprojecten van onze studenten ontdekken en maak kennis met hun
-        innovatieve ideeën en toekomstplannen. We sluiten de avond feestelijk af met
-        de prijsuitreiking en een spetterende <strong>VJ-Set</strong>.<br /><br />
+        Vandaag verwelkomen we je op <strong>Shift Festival 2025</strong>! Vanaf
+        17:00 uur staat alles klaar om jou te ontvangen.<br /><br />
+        Tijdens het event krijg je de kans om de eindprojecten van onze studenten te
+        ontdekken. Daarnaast sluiten we af met een feestelijke prijsuitreiking en
+        VJ-Set.<br /><br />
         Alle informatie vind je op
         <a target="_blank" href="https://shiftfestival.be/"
             >https://shiftfestival.be/</a
@@ -1144,9 +1193,8 @@ const generateInviteEmail = (name) => `<div
         ><br />
         <strong>Tijd: 17:00 - 21:00 uur</strong><br />
     </p>
- 
     <p style="font-size: 16px; line-height: 1.6">
-        We kijken ernaar uit je morgen te zien op <strong>Shift</strong>!
+        Tot vanavond op <strong>Shift</strong>!
     </p>
     <p style="font-size: 14px; line-height: 1.6; color: #666">
         Met vriendelijke groeten,<br />
@@ -1161,54 +1209,59 @@ const generateInviteEmail = (name) => `<div
 </div>
 				`;
 
-// app.post("/api/maillist/send-invite-emails", async (req, res) => {
-// 	createSshTunnelAndConnection((err, connection) => {
-// 		if (err) {
-// 			console.error("SSH/DB connection failed:", err);
-// 			return res.status(500).json({ message: "Database connection error" });
-// 		}
 
-// 		const selectQuery = `
-// 		SELECT first_name, last_name, email 
-// 		FROM event_registrations 
-// 		WHERE wants_event_updates = 1
-// 	`;
+/*
+	The mail above is called by this function (Important, even if you test this function in localhost it will send out emails so be carefull, you don't wanna spam mails to users!).
+*/
+app.post("/api/maillist/send-invite-emails", async (req, res) => {
+	createSshTunnelAndConnection((err, connection) => {
+		if (err) {
+			console.error("SSH/DB connection failed:", err);
+			return res.status(500).json({ message: "Database connection error" });
+		}
 
-
-// 		connection.query(selectQuery, async (err, results) => {
-// 			connection.end();
-
-// 			if (err) {
-// 				console.error("Error querying database:", err);
-// 				return res.status(500).json({ message: "Sorry, something went wrong" });
-// 			}
-
-// 			// Send emails one by one
-// 			for (const { first_name, email } of results) {
-// 				const name = first_name || "Shift-bezoeker";
-
-// 				const htmlMessage = generateInviteEmail(name);
-
-// 				try {
-// 					await transporter.sendMail({
-// 						from: '"Shift Festival" <info@shiftfestival.be>',
-// 						to: email,
-// 						subject: "Morgen is het zover, Shift Festival 2025!",
-// 						html: htmlMessage
-// 					});
-// 					console.log(`📧 Uitnodiging verstuurd naar: ${email}`);
-// 				} catch (err) {
-// 					console.error(`❌ Fout bij verzenden naar ${email}:`, err);
-// 				}
-// 			}
-
-// 			res.status(200).json({ message: "Alle e-mails zijn verzonden." });
-// 		});
-// 	});
-// });
+		const selectQuery = `
+		SELECT first_name, last_name, email 
+		FROM event_registrations 
+		WHERE wants_event_updates = 1
+	`;
 
 
-// Start server
+		connection.query(selectQuery, async (err, results) => {
+			connection.end();
+
+			if (err) {
+				console.error("Error querying database:", err);
+				return res.status(500).json({ message: "Sorry, something went wrong" });
+			}
+
+			for (const { first_name, email } of results) {
+				const name = first_name || "Shift-bezoeker";
+
+				const htmlMessage = generateLastEmail(name);
+
+				try {
+					await transporter.sendMail({
+						from: '"Shift Festival" <info@shiftfestival.be>',
+						to: email,
+						subject: "Vandaag is het zover, Shift Festival 2025!",
+						html: htmlMessage
+					});
+					console.log(`📧 Uitnodiging verstuurd naar: ${email}`);
+				} catch (err) {
+					console.error(`❌ Fout bij verzenden naar ${email}:`, err);
+				}
+			}
+
+			res.status(200).json({ message: "Alle e-mails zijn verzonden." });
+		});
+	});
+});
+
+
+/*
+	Start server
+*/
 app.listen(3000, () => {
 	console.log("🚀 Server started on port 3000");
 });
